@@ -109,17 +109,29 @@ if DB:
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
+# else:
+#     DATABASES = {
+#         'default': {
+#             'ENGINE': 'django.db.backends.postgresql',
+#             'NAME': 'july20',  # myproject
+#             'USER': 'postgres',  # myprojectuser
+#             'PASSWORD': '',  # password
+#             'HOST': 'localhost',
+#             'PORT': '5435',  # 5432
+#         }
+#     }
 else:
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': 'july20',  # myproject
-            'USER': 'postgres',  # myprojectuser
-            'PASSWORD': '',  # password
-            'HOST': 'localhost',
-            'PORT': '5435',  # 5432
-        }
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': 'defaultdb',  # myproject
+                'USER': 'avnadmin',  # myprojectuser
+                'PASSWORD': 'AVNS_oMeMfLaEDfUWsNTSrvy', # password
+                'HOST': 'shebirth-production-satheeshakash07.aivencloud.com',
+                'PORT': '17230',  # 5432
     }
+}
+
 
 # DATABASES = {
 #     'default': {
