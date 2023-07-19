@@ -24,7 +24,7 @@ class totalClientSerializer(serializers.ModelSerializer):
     email = serializers.CharField(source='user.email')
     firstname = serializers.CharField(source='user.firstname')
     lastname = serializers.CharField(source='user.lastname')
-    dateJoined = serializers.DateTimeField(source='user.dateJoined')
+    dateJoined  = serializers.DateTimeField(source='user.dateJoined')
     subscription = serializers.SerializerMethodField()
     dueDate = serializers.SerializerMethodField()
     doctor_firstname = serializers.CharField(source='referalId.user.firstname')
