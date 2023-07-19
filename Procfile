@@ -1,0 +1,1 @@
+web: gunicorn Shebirth.wsgi --log-file -

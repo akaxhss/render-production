@@ -1,0 +1,15 @@
+Investigation -> User -> send firebase notification
+
+
+send_message -> Fireabse 
+
+
+3 days before. CurrentPlanExpiry
+
+
+
+1. CriticalityChange Change notification
+2. Send notification to appointments
+3. Real Time notification
+4. Payment Integration
+

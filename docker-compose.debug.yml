@@ -1,0 +1,10 @@
+version: '2.1'
+
+services:
+  inq_botswana_dia_automation:
+    image: smart_birth
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 8000:8000

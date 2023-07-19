@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <!--====== Required meta tags ======-->
+  <meta charset="utf-8" />
+  <meta http-equiv="x-ua-compatible" content="ie=edge" />
+  <meta name="description" content="Lucknow cricket Scholarship provides scholarship for 1 year which includes fooding, lodging , hotel and 1 year fees for academy. If you want to get a cricket scholarship then this is one of the best place to live your dream" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  <meta name="theme-color" content="#e63543">
+  <!--====== Title ======-->
+  <title>Lucknow Cricket Scholarship | Providing one Year Scholarship</title>
+
+  <!--====== Favicon Icon ======-->
+  <link rel="shortcut icon" href="logo2.3.png" type="image/svg" />
+
+  <!--====== Bootstrap css ======-->
+  <link rel="stylesheet" href="assets/css/bootstrap.min.css" />
+
+  <!--====== Line Icons css ======-->
+  <link rel="stylesheet" href="assets/css/lineicons.css" />
+
+  <!--====== Tiny Slider css ======-->
+  <link rel="stylesheet" href="assets/css/tiny-slider.css" />
+
+  <!--====== gLightBox css ======-->
+  <link rel="stylesheet" href="assets/css/glightbox.min.css" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+  <!--====== NAVBAR NINE PART START ======-->
+  <div id="app">
+    
+  
+
+  <div id="form" style="margin-top: 20px;">
+    <p class="text-white">Lucknow cricket scholarship</p>
+    <div class="bg-white ">
+
+
+        <div class="container bg-white" >
+            <br />
+            <h3 class=" text-center">Fill this form to Apply for
+                Scholarship
+            </h3>
+
+            <br />
+            <div id="mainForm" class="col-md-12 col-lg-12  mb-5">
+                <h4 class="mb-3 text-center">Personal details</h4>
+                <form @submit="onSubmit" class="needs-validation" id="formRegistration">
+
+                    <hr class="my-4">
+                    <button class="w-100 btn mb-5 btn-primary btn-lg" id="submitBtn" type="submit">Pay Fee
+                        &#8377;&nbsp; <span id="finalprize">{{ price }}</span></button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+ 
+
+</div>
+</div>
+
+
+
+
+
+
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+
+<script>
+  const { createApp } = Vue
+
+  createApp({
+    data() {
+      return {
+        message: 'Hello Vue!',
+      
+        price: 1499,
+        paid_students : [],
+        page : 2,
+        done : true,
+        loadmore : true
+      }
+    },
+
+    methods: {
+
+      loadMoreImages(){
+
+        var html = ""
+
+        for(var i = 20;i <= 33;i++){
+          html += `
+          <div class="col-lg-3 col-md-3 col-6">
+          <div class="single-news">
+            <div class="image">
+              <a href="javascript:void(0)"><img style="height: 350px;" class="thumb" src="gallery/${i}.jpeg" alt="Blog" /></a>
+            </div>
+          </div>
+        </div>`
+        }
+
+        document.getElementById('show_images').innerHTML = html
+        this.loadmore = false
+      },
+
+
+
+            getMoreData(){
+                fetch(`https://capofficelko.cf/done/?page=${this.page}`)
+                    .then(resp => resp.json())
+                    .then(response => {
+                        
+                        if(this.done){
+                            console.log(response.data.results)
+                            this.paid_students = this.paid_students.concat(response.data.results)
+                            this.page = response.data.pagination.next_page
+                            this.done = response.data.pagination.is_next_page
+                        }
+                    })
+            },
+            getDone(){
+                    fetch(`https://capofficelko.cf/done/?page=1`)
+                    .then(resp => resp.json())
+                    .then(response => {
+                        console.log(response)
+                        this.paid_students = response.data.results
+                    })
+            },
+            onChange(event) {
+                var price = (event.target.options[event.target.options.selectedIndex].dataset.price)
+                this.price = price
+            },
+            generateGuid() {
+                var result, i, j;
+                result = '';
+                for (j = 0; j < 10; j++) {
+                    if (j == 8 || j == 12 || j == 16 || j == 20)
+                        result = result + '-';
+                    i = Math.floor(Math.random() * 16).toString(16).toUpperCase();
+                    result = result + i;
+                }
+                return result;
+            },
+            onSubmit(event) {
+
+                event.preventDefault()
+
+                var uid = this.generateGuid()
+
+                var userDataToSend = {
+                  "membership_id" : "1",
+                  "user_id" : "173",
+                  "uid" : uid
+                }
+
+
+                // var userDataToSend = {
+                //         "appointment_id" : "211",
+                //         "uid" : "c1d496d8-8c96-4a87-a5b2-17afd600c6a5"
+                // }
+
+                console.log(userDataToSend)
+                var url_for_membership = "https://sukhprasavam.shebirth.com/payments/purchase_memberships/"
+
+                fetch(url_for_membership, {
+                        method: 'POST',
+                        headers: {
+
+                            "Content-Type": "application/json; charset=UTF-8"
+                        },
+                        body: JSON.stringify(userDataToSend)
+                    })
+                    .then(function (response) {
+                        return response.json();
+                    })
+                    .then(function (result) {
+                        console.log(result)
+                    })
+                    .catch(function (error) {
+                        console.log('Request failed', error);
+                    });
+
+
+                // ZZi1VE5zrtXantWl1gxJHdhE
+                var options = {
+                    //"key": "rzp_test_5d60mn9fWp5VT7",
+                    "key": "rzp_test_NssBWlBNPqnkAX",
+                    "amount": this.price * 100, // 2000 paise = INR 20
+                    "name": "Shebirth",
+                    "description": uid,
+
+                    "handler": function (response) {
+                        console.log(response)
+
+                        setTimeout(() => {
+                            window.location.reload(true);
+                        }, "3000");
+
+                    },
+                    "notes": {
+                        'user': JSON.stringify(userDataToSend),
+
+                    },
+
+                };
+                let rzp1 = new window.Razorpay(options)
+
+                rzp1.on('payment.failed', function (response) {
+                    console.log(response)
+
+                    setTimeout(() => {
+                        window.location.reload(true);
+                    }, "3000");
+                });
+                rzp1.open();
+
+
+
+            },
+             forward(){
+              if(window.location.href == 'https://lcs1.netlify.app/'){
+                window.location.replace("https://lucknowcricketscholarship.com/");
+              }
+            }
+        },
+        created(){
+            this.getDone(),
+            this.forward()
+        }
+  }).mount('#app')
+</script>
+
+
+
+<style>
+  input{
+    height: 45px;
+    margin-top: 5px;
+  }
+  select{
+    height: 45px;
+  }
+  label{
+    margin-bottom: 10px;
+    margin-top: 10px;
+  }
+  
+  #demo {
+    height:100%;
+    position:relative;
+    overflow:hidden;
+  }
+  
+  
+  .green{
+    background-color:#6fb936;
+  }
+          .thumb{
+              margin-bottom: 30px;
+          }
+          
+          .page-top{
+              margin-top:85px;
+          }
+  
+     
+  img.zoom {
+      width: 100%;
+      height: 200px;
+      border-radius:5px;
+      object-fit:cover;
+      -webkit-transition: all .3s ease-in-out;
+      -moz-transition: all .3s ease-in-out;
+      -o-transition: all .3s ease-in-out;
+      -ms-transition: all .3s ease-in-out;
+  }
+          
+   
+  .transition {
+      -webkit-transform: scale(1.2); 
+      -moz-transform: scale(1.2);
+      -o-transform: scale(1.2);
+      transform: scale(1.2);
+  }
+      .modal-header {
+     
+       border-bottom: none;
+  }
+      .modal-title {
+          color:#000;
+      }
+      .modal-footer{
+        display:none;  
+      }
+  
+      
+  
+    </style>
+  <!-- 
+    <script>
+  
+      //===== close navbar-collapse when a  clicked
+      let navbarTogglerNine = document.querySelector(
+        ".navbar-nine .navbar-toggler"
+      );
+      navbarTogglerNine.addEventListener("click", function () {
+        navbarTogglerNine.classList.toggle("active");
+      });
+  
+      // ==== left sidebar toggle
+      let sidebarLeft = document.querySelector(".sidebar-left");
+      let overlayLeft = document.querySelector(".overlay-left");
+      let sidebarClose = document.querySelector(".sidebar-close .close");
+  
+      overlayLeft.addEventListener("click", function () {
+        sidebarLeft.classList.toggle("open");
+        overlayLeft.classList.toggle("open");
+      });
+      sidebarClose.addEventListener("click", function () {
+        sidebarLeft.classList.remove("open");
+        overlayLeft.classList.remove("open");
+      });
+  
+      // ===== navbar nine sideMenu
+      let sideMenuLeftNine = document.querySelector(".navbar-nine .menu-bar");
+  
+      sideMenuLeftNine.addEventListener("click", function () {
+        sidebarLeft.classList.add("open");
+        overlayLeft.classList.add("open");
+      });
+  
+      //========= glightbox
+      GLightbox({
+        'href': 'https://www.youtube.com/watch?v=r44RKWyfcFw&fbclid=IwAR21beSJORalzmzokxDRcGfkZA1AtRTE__l5N4r09HcGS5Y6vOluyouM9EM',
+        'type': 'video',
+        'source': 'youtube', //vimeo, youtube or local
+        'width': 900,
+        'autoplayVideos': true,
+      });
+  
+  
+      $(document).ready(function(){
+    $(".fancybox").fancybox({
+          openEffect: "none",
+          closeEffect: "none"
+      });
+      
+      $(".zoom").hover(function(){
+      
+      $(this).addClass('transition');
+    }, function(){
+          
+      $(this).removeClass('transition');
+    });
+  });
+      
+    </script>
+   -->
+  
+
+</body>
+
+</html>

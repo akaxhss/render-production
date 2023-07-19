@@ -1,0 +1,36 @@
+worker = celery -A Shebirth worker -l info -O fair
+celery-beat = celery -A Shebirth beat -l info
+
+
+rabitmq
+sudo systemctl start rabbitmq-server
+
+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
+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
+128.199.17.34
+
+
+sudo systemctl daemon-reload
+sudo systemctl restart gunicorn
+sudo systemctl restart nginx
+
+
+
+
+
+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
+
+
+
+
+METHOD - GET
+https://sukhprasavam.shebirth.com/customer/get-free-content/
+
+
+
+METHOD - DELETE
+https://sukhprasavam.shebirth.com/admin-panel/free-content/
+
+{
+    "id"  : ""
+}

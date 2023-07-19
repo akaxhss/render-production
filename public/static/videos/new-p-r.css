@@ -1,0 +1,118 @@
+body {
+  background-color:#DEEDEA;
+}
+
+/* navbar */
+nav {
+  background-color:#98D4CA;
+}
+.navbar-nav {
+  
+  margin-left: 44px;
+}
+.search-box {
+  margin-right: 227px;
+
+
+}
+
+/* navbar  */
+
+/* main-heading */
+.main-header {
+  text-decoration: underline;
+  margin-left: 104px;
+  margin-top: 23px;
+  font-size: 30px;
+}
+
+/* main-heading */
+
+/* highlight-navbar */
+.highlight-nav {
+  color: blue !important;
+
+  border-bottom: 2px solid blue;
+}
+/* highlight-navbar */
+
+/* placeholderstyling */
+input {
+  border-radius: 8px;
+}
+
+/* placeholderstyling */
+
+/* .input-background {
+  width: 206px;
+  height: 28px;
+  background-color: white;
+  border-radius: 8px;
+} */
+
+input {
+  border: none;
+  padding: 9px;
+  
+}
+input:focus {
+  outline: none;
+}
+
+select:focus {
+  outline: none;
+}
+
+select {
+  width: 100%;
+  border-radius: 8px;
+  padding: 9px;
+  border: none;
+}
+.green {
+  background-color: green;
+}
+.red {
+  background-color: red;
+}
+
+.yellow {
+  background-color: yellow;
+}
+#doc-field {
+  width: 251px;
+
+  margin-left: -15px;
+}
+.doc-text {
+    margin-left: -15px;
+}
+
+textarea {
+  border-radius: 9px;
+  border: none;
+}
+textarea:focus{
+
+outline:none;
+
+
+
+}
+
+
+.text-inputs{
+
+width: 100%;
+
+
+}
+.next{
+
+
+background-color:#1A0BF1 ;
+
+height: 41px;
+
+width: 150px;
+}

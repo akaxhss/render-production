@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous">
+    <title>Reset Password</title>
+    <style>
+        body {
+            background-color: #EEEEEE;
+        }
+        .card {
+            width: 40%;
+            margin: auto;
+            min-width: 500px;
+            /* border: 1px solid red; */
+            padding: 10%;
+            /* background-color: #FEFBF3; */
+        }
+        .input {
+            border: none;
+            padding: 10px;
+            width: 90%;
+            /* margin: auto; */
+            display: block;
+            outline: none;
+        }      
+        button {
+            background-color: #2FDD92;
+            color: white;
+            width: 50%;
+            min-width: 300px;
+            border: none;
+            outline: none;
+            padding: 10px;
+            margin: auto;
+            display: block;
+            cursor: pointer;
+        }  
+        label {
+            letter-spacing: .1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <ul>
+            {% if passwordsMatch is False  %}
+                <li>Passwords does not match</li>
+            {% endif %}
+            {% if result.status %}
+                <li class="text success">Password reset successfull</li>
+            {% endif %}
+            {% if result.detail %}
+                <li class="text error">Invalid link</li>
+            {% endif %}
+            {% if result.password %}
+                {% for msg in result.password %}
+                    <li class="error">{{msg}}</li>
+                {% endfor %}
+            {% endif %}
+        </ul>
+        <form action="{% url 'setPassword' %}" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="token" value={{token}}>
+            <label for="password">Enter new password:</label> <br><br>
+            <input type="password" name="password" class="input"> <br> <br>
+            <label for="password">Repeat password:</label> <br><br>
+            <input type="password" name="password2" class="input"> <br> <br>
+            <!-- <input type="submit" value="Reset"> -->
+            <button type="submit">Reset</button>
+        </form>
+    </div>
+</body>
+</html>

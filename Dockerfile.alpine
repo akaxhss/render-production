@@ -1,0 +1,20 @@
+FROM python:3.6-alpine3.7
+
+LABEL Name=smart_birth Version=0.0.1
+EXPOSE 80
+
+#Install Packages
+RUN apk add --update build-base libxslt-dev 
+
+WORKDIR /app
+
+# cache level
+
+ADD . /app
+
+# Install python packages
+
+RUN python -m pip install -r requirements.txt
+
+#RUN server
+CMD python manage.py runserver 0.0.0.0:80

@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Confirmation</title>
+  </head>
+  <body>
+    {% if success %} {{ user.firstname }}, your email is successfully verified!
+    {% else %} Sorry, link have expired! {% endif %}
+  </body>
+</html>

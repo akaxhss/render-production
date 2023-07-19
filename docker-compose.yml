@@ -1,0 +1,29 @@
+version: '3'
+
+services:
+  celery_redis:
+    image: redis
+    restart: "${DOCKER_RESTART_POLICY:-unless-stopped}"
+    stop_grace_period: "${DOCKER_STOP_GRACE_PERIOD:-3s}"
+  
+  web:
+    image: smart_birth:v2
+    command: python manage.py runserver 0.0.0.0:8000
+    build: .
+    volumes: 
+      - .:/app
+    ports:
+      - 8000:8000
+    
+    depends_on: 
+      - celery_redis
+  
+  worker:
+    image: smart_birth:v2
+    build: .
+    volumes: 
+      - .:/app
+    command: celery -A Shebirth worker -B -Q celery -l DEBUG
+    depends_on: 
+      - celery_redis
+  
