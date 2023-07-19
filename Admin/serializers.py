@@ -33,6 +33,7 @@ class totalClientSerializer(serializers.ModelSerializer):
     criticality = serializers.SerializerMethodField()
     week = serializers.SerializerMethodField()
     profile_pic = serializers.ImageField(source="user.profile_img")
+
     
     class Meta:
         model = CustomerDetails
