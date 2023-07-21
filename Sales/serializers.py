@@ -102,6 +102,30 @@ class CustomerCallReposnseSerializer(serializers.ModelSerializer):
             'sales' : {'write_only' : True}
         }
 
+# class CustomerCallReposnseSerializer(serializers.ModelSerializer):
+#     # callResponse = serializers.CharField(source='response.response', read_only=True)
+#
+#     class Meta:
+#         model = CustomerCallReposnses
+#         fields = '__all__'
+#         extra_kwargs = {
+#             'customer': {'write_only': True},
+#             'response': {'write_only': True},
+#             'sales': {'write_only': True}
+#         }
+#
+#     def create(self, validated_data):
+#         customer = validated_data['customer']
+#         date = validated_data['date']
+#
+#         # Create a new entry for the same customer and date
+#         instance = CustomerCallReposnses.objects.create(
+#             customer=customer,
+#             date=date,
+#             response=validated_data['response'],
+#             sales=validated_data['sales']
+#         )
+#         return instance
 class SalesSerializer(serializers.ModelSerializer):
     id = serializers.CharField(source='user.id')
     firstname = serializers.CharField(source='user.firstname')

@@ -26,6 +26,5 @@ urlpatterns = [
     path('all-clients/', all_clients),
     path('sales-team-called/',sales_team_called_list, name='sales-team-called')
 
-
 ]
 

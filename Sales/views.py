@@ -390,22 +390,24 @@ def last_updated_before_one_day(request):
     else:
         return JsonResponse({'error' : 'unauthorized request'}, status=status.HTTP_401_UNAUTHORIZED)
 
+
 @api_view(['POST','PATCH'])
 @permission_classes((IsAuthenticated,))
 def add_call_response(request):
     user = request.user
-    response = request.data.get('response', 'None')
+    response = request.data.get('response', None)
     customer = request.data.get('customer', None)
     date = request.data.get('date', None)
     data = request.data.copy()
-    if user.role==User.SALES:
+
+    if user.role == User.SALES:
         if response is not None:
             try:
-                response = CallResponses.objects.get(response__iexact=response)
-                data['response'] = response.id
+                response_obj, created = CallResponses.objects.get_or_create(response__iexact=response)
+                data['response'] = response_obj.id
             except CallResponses.DoesNotExist:
-                response = ""
-                # return JsonResponse({"Error" : "Call Response not found"}, status=status.HTTP_404_NOT_FOUND)
+                return JsonResponse({"Error" : "Call Response not found"}, status=status.HTTP_404_NOT_FOUND)
+
             try:
                 sales = SalesTeamDetails.objects.get(user=request.user.id)
             except SalesTeamDetails.DoesNotExist:
@@ -414,21 +416,70 @@ def add_call_response(request):
             data['sales'] = sales.id
             data['date'] = date if date is not None else  datetime.datetime.now().date()
 
+            # Check if a duplicate entry exists for the given customer_id and date
+            duplicates = CustomerCallReposnses.objects.filter(customer=customer, date=data['date'])
+            if duplicates.count() > 0:
+                # If a duplicate entry exists, delete it
+                duplicates.delete()
+
             if request.method == 'PATCH':
                 try:
                     instance = CustomerCallReposnses.objects.get(customer=customer, date=datetime.datetime.today())
+                    serializer = CustomerCallReposnseSerializer(instance, data=data, partial=True)
                 except CustomerCallReposnses.DoesNotExist:
                     return JsonResponse({"error" : "call response not found"}, status=status.HTTP_404_NOT_FOUND)
-                serializer = CustomerCallReposnseSerializer(instance, data=data, partial=True)
             else:
                 serializer = CustomerCallReposnseSerializer(data=data)
+
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
-                return JsonResponse(serializer.data,  safe=False)
+                return JsonResponse(serializer.data, status=status.HTTP_200_OK)
+
         else:
             return JsonResponse({"Error" : "response cannot be empty"}, status=status.HTTP_400_BAD_REQUEST)
     else:
         return JsonResponse({'error' : 'unauthorized request'}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+# @api_view(['POST','PATCH'])
+# @permission_classes((IsAuthenticated,))
+# def add_call_response(request):
+#     user = request.user
+#     response = request.data.get('response', 'None')
+#     customer = request.data.get('customer', None)
+#     date = request.data.get('date', None)
+#     data = request.data.copy()
+#     if user.role==User.SALES:
+#         if response is not None:
+#             try:
+#                 response = CallResponses.objects.get(response__iexact=response)
+#                 data['response'] = response.id
+#             except CallResponses.DoesNotExist:
+#                 response = ""
+#                 # return JsonResponse({"Error" : "Call Response not found"}, status=status.HTTP_404_NOT_FOUND)
+#             try:
+#                 sales = SalesTeamDetails.objects.get(user=request.user.id)
+#             except SalesTeamDetails.DoesNotExist:
+#                 return JsonResponse({"Error" : "Sales Team not found"}, status=status.HTTP_404_NOT_FOUND)
+#
+#             data['sales'] = sales.id
+#             data['date'] = date if date is not None else  datetime.datetime.now().date()
+#
+#             if request.method == 'PATCH':
+#                 try:
+#                     instance = CustomerCallReposnses.objects.get(customer=customer, date=datetime.datetime.today())
+#                 except CustomerCallReposnses.DoesNotExist:
+#                     return JsonResponse({"error" : "call response not found"}, status=status.HTTP_404_NOT_FOUND)
+#                 serializer = CustomerCallReposnseSerializer(instance, data=data, partial=True)
+#             else:
+#                 serializer = CustomerCallReposnseSerializer(data=data)
+#             if serializer.is_valid(raise_exception=True):
+#                 serializer.save()
+#                 return JsonResponse(serializer.data,  safe=False)
+#         else:
+#             return JsonResponse({"Error" : "response cannot be empty"}, status=status.HTTP_400_BAD_REQUEST)
+#     else:
+#         return JsonResponse({'error' : 'unauthorized request'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 @api_view(['GET'])
@@ -500,23 +551,54 @@ def clients_under_sales(request):
 # def DeleteResponse():
 #     CallResponses.objects.all().delete()
 
+# @api_view(['GET'])
+# @permission_classes((IsAuthenticated,))
+# def sales_team_called_list(request):
+#     customer_id = request.query_params.get('customer_id', None)
+#
+#     if customer_id is not None:
+#         try:
+#             customer_id = int(customer_id)
+#             calls = CustomerCallReposnses.objects.filter(customer__id=customer_id)
+#             serializer = CustomerCallReposnsesSerializer(calls, many=True)
+#             return JsonResponse(serializer.data, safe=False)  # Set safe parameter to False
+#         except CustomerCallReposnses.DoesNotExist:
+#             return JsonResponse({'error': 'No calls found for the given customer_id.'},
+#                                 status=status.HTTP_404_NOT_FOUND)
+#         except ValueError:
+#             return JsonResponse({'error': 'Invalid customer_id. Must be an integer.'},
+#                                 status=status.HTTP_400_BAD_REQUEST)
+#
+#     return JsonResponse({'error': 'No customer_id provided in the query parameters.'},
+#                         status=status.HTTP_400_BAD_REQUEST)
+
+from datetime import datetime
+#this code is made by akash on 20/07/2023 for getting the api response as customer id and also with customer id and date together
 @api_view(['GET'])
 @permission_classes((IsAuthenticated,))
 def sales_team_called_list(request):
     customer_id = request.query_params.get('customer_id', None)
+    date_str = request.query_params.get('date', None)
 
-    if customer_id is not None:
+    try:
+        customer_id = int(customer_id)
+    except (TypeError, ValueError):
+        return JsonResponse({'error': 'Invalid customer_id. Must be an integer.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+    calls = CustomerCallReposnses.objects.filter(customer__id=customer_id)
+
+    if date_str:
         try:
-            customer_id = int(customer_id)
-            calls = CustomerCallReposnses.objects.filter(customer__id=customer_id)
-            serializer = CustomerCallReposnsesSerializer(calls, many=True)
-            return JsonResponse(serializer.data, safe=False)  # Set safe parameter to False
-        except CustomerCallReposnses.DoesNotExist:
-            return JsonResponse({'error': 'No calls found for the given customer_id.'},
-                                status=status.HTTP_404_NOT_FOUND)
+            date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            calls = calls.filter(date=date)
         except ValueError:
-            return JsonResponse({'error': 'Invalid customer_id. Must be an integer.'},
+            return JsonResponse({'error': 'Invalid date format. Must be in YYYY-MM-DD format.'},
                                 status=status.HTTP_400_BAD_REQUEST)
 
-    return JsonResponse({'error': 'No customer_id provided in the query parameters.'},
-                        status=status.HTTP_400_BAD_REQUEST)
+    if not calls.exists():
+        return JsonResponse({'error': 'No calls found for the given customer_id and date combination.'},
+                            status=status.HTTP_404_NOT_FOUND)
+
+    serializer = CustomerCallReposnsesSerializer(calls, many=True)
+    return JsonResponse(serializer.data, safe=False)
