@@ -42,7 +42,7 @@ from Accounts.helper import send_notification
 
 @receiver(post_save, sender=Appointments)
 def appointment_changes(sender, instance, **kwargs):
-    print("HELLO")
+    return # return
     try:
         info_data = {
             "notification_type" : "appointment",

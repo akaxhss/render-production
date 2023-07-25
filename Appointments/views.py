@@ -61,7 +61,7 @@ meetingdetails = {
 
 def generateToken():
     token = jwt.encode({'iss': settings.ZOOM_API_KEY, 'exp': time() + 5000},settings.ZOOM_API_SEC,algorithm='HS256')
-    return token.decode("utf-8") #to convert byte to string 
+    return token    #.decode("utf-8") #to convert byte to string
 
 def createMeeting():
     headers = {'authorization': 'Bearer %s' % generateToken(),'content-type': 'application/json'}
@@ -153,7 +153,6 @@ def appointment_payments(request):
 
 
 
-
 @api_view(['POST',])
 @permission_classes((IsAuthenticated,))
 def customer_booking(request):
@@ -162,8 +161,7 @@ def customer_booking(request):
         doctor = request.data.get('doctor', None)
         date = request.data.get('date', None)
         time = request.data.get('time', None)
-        # customer = request.data.get('customer', None)
-        customer = request.user.id 
+        customer = request.user.id
 
         doctor_info = {}
         doctor_price = None
@@ -171,8 +169,8 @@ def customer_booking(request):
             try:
                 doctor = DoctorDetails.objects.select_related('user').get(user=doctor)
                 doctor_price = doctor.price
-                doctor_info =   {
-                    "doctor_name" : doctor.user.firstname ,
+                doctor_info = {
+                    "doctor_name" : doctor.user.firstname,
                     "doctor_speciality" : doctor.speciality,
                     "doctor_age" : doctor.age,
                     "doctor_price" : doctor.price,
@@ -184,59 +182,31 @@ def customer_booking(request):
                     "doctor_gender" : doctor.gender,
                 }
             except DoctorDetails.DoesNotExist:
-                return JsonResponse({"Error" : "doctor does not exists"}, status=status.HTTP_404_NOT_FOUND)
+                return JsonResponse({"Error" : "doctor does not exist"}, status=status.HTTP_404_NOT_FOUND)
             try:
                 customer = CustomerDetails.objects.get(user=request.user.id)
             except User.DoesNotExist:
-                return JsonResponse({"Error" : "Customer does not exists"}, status=status.HTTP_404_NOT_FOUND)
+                return JsonResponse({"Error" : "Customer does not exist"}, status=status.HTTP_404_NOT_FOUND)
         else:
-            return JsonResponse({"Error" : "Customer and doctor is required to make an appointment."})
-
-      
-
-
-
+            return JsonResponse({"Error" : "Customer and doctor are required to make an appointment."})
 
         data = request.data.copy()
         data['customer'] = customer.id
         data['doctor'] = doctor.id
 
-        if doctor_price is not None and doctor_price <=0:
+        if doctor_price is not None and doctor_price <= 0:
             data['is_paid'] = True
 
         try:
-            schedule = datetime.combine(datetime.fromisoformat(date),datetime.strptime(time.replace(" ", ""), '%H:%M').time()) #without pm
+            schedule = datetime.combine(datetime.fromisoformat(date), datetime.strptime(time.replace(" ", ""), '%H:%M').time()) # without pm
         except:
-            schedule = datetime.combine(datetime.fromisoformat(date),datetime.strptime(time.replace(" ", ""), '%H:%M%p').time()) #with am and pm
+            schedule = datetime.combine(datetime.fromisoformat(date), datetime.strptime(time.replace(" ", ""), '%H:%M%p').time()) # with am and pm
         data['schedule'] = schedule
-
-
-        #print(user.customer_details)
-        
-
-
-        customer_appointments = Appointments.objects.filter(customer__user = user,meeting_url__isnull = True)
-        for ca in customer_appointments:
-            
-
-            serializer = BookingSerializer(ca,data=data, context={'request': request}, partial = True)
-            
-            #print(serializer.data)
-            if serializer.is_valid(raise_exception=True):
-              
-                appointment = serializer.save()
-                print(serializer.data)
-            
-                print(serializer.errors)
-            data = serializer.data
-            data['doctor_info'] = doctor_info
-            return JsonResponse(data)
 
         serializer = BookingSerializer(data=data, context={'request': request})
 
         if serializer.is_valid(raise_exception=True):
             appointment = serializer.save()
-
             data = serializer.data
             data['doctor_info'] = doctor_info
             return JsonResponse(data)
@@ -245,6 +215,97 @@ def customer_booking(request):
     else:
         return JsonResponse({'error' : 'unauthorized request'}, status=status.HTTP_401_UNAUTHORIZED)
 
+# @api_view(['POST',])
+# @permission_classes((IsAuthenticated,))
+# def customer_booking(request):
+#     user = request.user
+#     if user.role == User.CLIENT:
+#         doctor = request.data.get('doctor', None)
+#         date = request.data.get('date', None)
+#         time = request.data.get('time', None)
+#         # customer = request.data.get('customer', None)
+#         customer = request.user.id
+#
+#         doctor_info = {}
+#         doctor_price = None
+#         if doctor is not None:
+#             try:
+#                 doctor = DoctorDetails.objects.select_related('user').get(user=doctor)
+#                 doctor_price = doctor.price
+#                 doctor_info =   {
+#                     "doctor_name" : doctor.user.firstname ,
+#                     "doctor_speciality" : doctor.speciality,
+#                     "doctor_age" : doctor.age,
+#                     "doctor_price" : doctor.price,
+#                     "doctor_qualification" : doctor.qualification,
+#                     "doctor_interests" : doctor.interests,
+#                     "doctor_experience" : doctor.experience,
+#                     "doctor_languages" : doctor.languages,
+#                     "doctor_location" : doctor.location,
+#                     "doctor_gender" : doctor.gender,
+#                 }
+#             except DoctorDetails.DoesNotExist:
+#                 return JsonResponse({"Error" : "doctor does not exists"}, status=status.HTTP_404_NOT_FOUND)
+#             try:
+#                 customer = CustomerDetails.objects.get(user=request.user.id)
+#             except User.DoesNotExist:
+#                 return JsonResponse({"Error" : "Customer does not exists"}, status=status.HTTP_404_NOT_FOUND)
+#         else:
+#             return JsonResponse({"Error" : "Customer and doctor is required to make an appointment."})
+#
+#
+#
+#
+#
+#
+#         data = request.data.copy()
+#         data['customer'] = customer.id
+#         data['doctor'] = doctor.id
+#
+#         if doctor_price is not None and doctor_price <=0:
+#             data['is_paid'] = True
+#
+#         try:
+#             schedule = datetime.combine(datetime.fromisoformat(date),datetime.strptime(time.replace(" ", ""), '%H:%M').time()) #without pm
+#         except:
+#             schedule = datetime.combine(datetime.fromisoformat(date),datetime.strptime(time.replace(" ", ""), '%H:%M%p').time()) #with am and pm
+#         data['schedule'] = schedule
+#
+#
+#         #print(user.customer_details)
+#
+#
+#
+#         customer_appointments = Appointments.objects.filter(customer__user = user,meeting_url__isnull = True)
+#         for ca in customer_appointments:
+#
+#
+#             serializer = BookingSerializer(ca,data=data, context={'request': request}, partial = True)
+#
+#             #print(serializer.data)
+#             if serializer.is_valid(raise_exception=True):
+#
+#                 appointment = serializer.save()
+#                 print(serializer.data)
+#
+#                 print(serializer.errors)
+#             data = serializer.data
+#             data['doctor_info'] = doctor_info
+#             return JsonResponse(data)
+#
+#         serializer = BookingSerializer(data=data, context={'request': request})
+#
+#         if serializer.is_valid(raise_exception=True):
+#             appointment = serializer.save()
+#
+#             data = serializer.data
+#             data['doctor_info'] = doctor_info
+#             return JsonResponse(data)
+#         else:
+#             return JsonResponse(serializer.errors)
+#     else:
+#         return JsonResponse({'error' : 'unauthorized request'}, status=status.HTTP_401_UNAUTHORIZED)
+#
 
 # getting approved
 @api_view(['POST',])
