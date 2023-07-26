@@ -270,7 +270,7 @@ class CustomerDetails(models.Model):
     prescription = models.FileField(upload_to='Prescriptions/', null=True,blank=True)
     drugUse = models.CharField(max_length=10, null=True, blank=True,validators=[yes_or_no_regex])
     # patient of 
-    referalId = models.ForeignKey(DoctorDetails, on_delete=models.CASCADE, null=True, related_name='referal_doc')
+    referalId = models.ForeignKey(DoctorDetails, on_delete=models.CASCADE, null=True,blank=True, related_name='referal_doc')
     fcm_token = models.TextField(null = True , blank=True)
 
     def __str__(self):
