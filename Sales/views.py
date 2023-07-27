@@ -270,7 +270,7 @@ def sales_dashboard_details(request):
         # detials
         totalPatients = ClientDetialSerializer(allPatients, many=True)
         # time_threshold = datetime.datetime.now() - datetime.timedelta(days=1,hours=24)
-        time_threshold = datetime.datetime.now(timezone.utc) - timedelta(hours=24)
+        time_threshold = datetime.now(timezone.utc) - timedelta(hours=24)
 
         lastUpdatedPatients = LastUpdateDate.objects.filter(Q(diet__lt = time_threshold) | Q(activity__lt = time_threshold) | Q(symptom__lt = time_threshold) | Q(medicine__lt = time_threshold)).filter(customer__is_active = True)
 
@@ -279,7 +279,7 @@ def sales_dashboard_details(request):
         # lastUpdatedPatientSerializer = CustomerLastUpdated24hoursSerilializer(lastUpdatedPatients, many=True)
     
         # total clients this month
-        month = datetime.datetime.today().month
+        month = datetime.today().month
         this_month_patients = allPatients.filter(user__dateJoined__month=month)
 
         # details
@@ -313,9 +313,9 @@ def sales_dashboard_details(request):
 def clients_this_month(request):
     user = request.user
     if user.role==User.SALES or user.role==User.ADMIN or user.role==User.CONSULTANT:
-        threshold_date = datetime.datetime.now().date() - timedelta(days=294) #42 weeks
+        threshold_date = datetime.now().date() - timedelta(days=294) #42 weeks
         # total clients this month
-        month = datetime.datetime.today().month
+        month = datetime.today().month
         this_month_patients = CustomerDetails.objects.filter(user__dateJoined__month=month,Menstruation_date__gte=threshold_date).prefetch_related('referalId', 'referalId__user')
         # details
         this_month_patient_details = ClientDetialSerializer(this_month_patients, many=True)
@@ -329,7 +329,7 @@ def clients_this_month(request):
 def all_clients(request):
     user = request.user
     if user.role==User.SALES or user.role==User.DOCTOR or user.role==User.CONSULTANT:
-        threshold_date = datetime.datetime.now().date() - timedelta(days=294) #42 weeks
+        threshold_date = datetime.now().date() - timedelta(days=294) #42 weeks
         allClients = CustomerDetails.objects.filter(Menstruation_date__gte=threshold_date).prefetch_related('referalId', 'referalId__user')
         serializer = ClientDetialSerializer(allClients, many=True)
         return JsonResponse(serializer.data, safe=False)
@@ -341,7 +341,7 @@ def all_clients(request):
 @permission_classes((IsAuthenticated,))
 def no_update_clients(request):
     user = request.user
-    time_threshold = datetime.datetime.now(timezone.utc) - timedelta(hours=24)
+    time_threshold = datetime.now(timezone.utc) - timedelta(hours=24)
 
     # lastUpdatedPatients = LastUpdateDate.objects.filter(Q(diet__lt = time_threshold) | Q(activity__lt = time_threshold) | Q(symptom__lt = time_threshold) | Q(medicine__lt = time_threshold)).prefetch_related('customer', 'customer__customer_details')
     if user.role==User.SALES:
@@ -368,8 +368,8 @@ def no_update_clients(request):
 @permission_classes((AllowAny,))
 def last_updated_before_one_day(request):
     user = request.user
-    time_threshold = datetime.datetime.now(timezone.utc) - timedelta(hours=24)
-    today = datetime.datetime.today().date()
+    time_threshold = datetime.now(timezone.utc) - timedelta(hours=24)
+    today = datetime.today().date()
     # print(today)
     # to get patients that are in antinatal, that is LMP is greater than (todays date - 280 days)
     date = today - timedelta(days=280)
@@ -414,7 +414,7 @@ def add_call_response(request):
                 return JsonResponse({"Error" : "Sales Team not found"}, status=status.HTTP_404_NOT_FOUND)
 
             data['sales'] = sales.id
-            data['date'] = date if date is not None else  datetime.datetime.now().date()
+            data['date'] = date if date is not None else  datetime.now().date()
 
             # Check if a duplicate entry exists for the given customer_id and date
             duplicates = CustomerCallReposnses.objects.filter(customer=customer, date=data['date'])
@@ -424,7 +424,7 @@ def add_call_response(request):
 
             if request.method == 'PATCH':
                 try:
-                    instance = CustomerCallReposnses.objects.get(customer=customer, date=datetime.datetime.today())
+                    instance = CustomerCallReposnses.objects.get(customer=customer, date=datetime.today())
                     serializer = CustomerCallReposnseSerializer(instance, data=data, partial=True)
                 except CustomerCallReposnses.DoesNotExist:
                     return JsonResponse({"error" : "call response not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -488,7 +488,7 @@ def get_call_response(request):
     user = request.user
     customer = request.query_params.get('customer', None)
     param_date = request.query_params.get('date', None)
-    date = param_date if param_date is not None else datetime.datetime.today()
+    date = param_date if param_date is not None else datetime.today()
     if user.role==User.SALES:
         if customer is not None:
             try:

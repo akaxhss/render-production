@@ -27,8 +27,8 @@ class totalClientSerializer(serializers.ModelSerializer):
     dateJoined = serializers.DateTimeField(source='user.dateJoined')
     subscription = serializers.SerializerMethodField()
     dueDate = serializers.SerializerMethodField()
-    doctor_firstname = serializers.CharField(source='referalId.user.firstname')
-    doctor_lastname = serializers.CharField(source='referalId.user.lastname')
+    doctor_firstname = serializers.CharField(source='referalId.user.firstname', required=False)
+    doctor_lastname = serializers.CharField(source='referalId.user.lastname', required=False)
     is_active = serializers.BooleanField(source='user.is_active')
     criticality = serializers.SerializerMethodField()
     week = serializers.SerializerMethodField()
@@ -37,7 +37,7 @@ class totalClientSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = CustomerDetails
-        fields = ['id', 'firstname', 'lastname', 'email', 'age', 'location','dateJoined', 'dueDate', 'doctor_firstname', 'doctor_lastname', 'is_active','subscription','criticality', 'week', 'profile_pic']
+        fields = ['id', 'firstname', 'lastname', 'email', 'age', 'location', 'dateJoined', 'dueDate', 'doctor_firstname', 'doctor_lastname', 'is_active','subscription','criticality', 'week', 'profile_pic']
 
     def get_week(self, obj):
         try:
