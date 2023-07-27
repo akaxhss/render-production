@@ -127,7 +127,6 @@ def registration(request):
         context.update(details.errors)
         context.update(PasswordErrors)
         return JsonResponse(context, status=status.HTTP_400_BAD_REQUEST)
-
 @api_view(['POST'])
 @permission_classes((HasAPIKey,))
 def client_registration(request):
@@ -136,13 +135,24 @@ def client_registration(request):
     password2 = request.data.get('password2', None)
     data = request.data.copy()
     data['role'] = User.CLIENT
-    userSerializer = RegistrationSerializers(data=data, context={'request': request})
 
     # Check if an account with this email exists that is not otp verified.
     client = User.objects.filter(email=request.data.get('email', None), is_verified=False)
     if client:
         client.delete()
 
+    referalId = request.data.get('referalId', None)
+    if referalId:
+        try:
+            doctorDetails = DoctorDetails.objects.get(referalId=referalId)
+            data['referalId'] = doctorDetails.id
+        except DoctorDetails.DoesNotExist:
+            # If the doctor with the provided referalId doesn't exist, set referalId to None
+            data['referalId'] = None
+    else:
+        data['referalId'] = None
+
+    userSerializer = RegistrationSerializers(data=data, context={'request': request})
     details = CustomerDetailsSerializer(data=data)
 
     # Validations
@@ -167,6 +177,46 @@ def client_registration(request):
         context.update(details.errors)
         context.update(PasswordErrors)
         return JsonResponse(context, status=status.HTTP_400_BAD_REQUEST)
+
+# @api_view(['POST'])
+# @permission_classes((HasAPIKey,))
+# def client_registration(request):
+#     context = {}
+#     password = request.data.get('password', None)
+#     password2 = request.data.get('password2', None)
+#     data = request.data.copy()
+#     data['role'] = User.CLIENT
+#     userSerializer = RegistrationSerializers(data=data, context={'request': request})
+#
+#     # Check if an account with this email exists that is not otp verified.
+#     client = User.objects.filter(email=request.data.get('email', None), is_verified=False)
+#     if client:
+#         client.delete()
+#
+#     details = CustomerDetailsSerializer(data=data)
+#
+#     # Validations
+#     userSerializerValidation = userSerializer.is_valid(raise_exception=True)
+#     detailSerializerValidation = details.is_valid(raise_exception=True)
+#     PasswordErrors = dict()
+#     try:
+#         password_validators.validate_password(password=userSerializer.initial_data['password'], user=User)
+#     except exceptions.ValidationError as e:
+#         PasswordErrors.update({'password': list(e.messages)})
+#     if password != password2:
+#         PasswordErrors.update({'password': 'Passwords do not match.'})
+#
+#     if userSerializerValidation and detailSerializerValidation and not PasswordErrors:
+#         user = userSerializer.save()
+#         details.save(user=user)
+#         context['otpId'] = user.id
+#         context['success'] = "Successfully registered"
+#         return JsonResponse(context, status=status.HTTP_201_CREATED)
+#     else:
+#         context = userSerializer.errors
+#         context.update(details.errors)
+#         context.update(PasswordErrors)
+#         return JsonResponse(context, status=status.HTTP_400_BAD_REQUEST)
 
 # @api_view(['POST'])
 # @permission_classes((HasAPIKey,))
