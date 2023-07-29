@@ -71,7 +71,7 @@ def checkout(request):
                     return JsonResponse({"error": "selected plan not found"}, status=status.HTTP_404_NOT_FOUND)
 
                 # ! make the current active plan to inactive
-                Subscriptions.objects.filter(customer=payment.customer, is_active=True)#.update(is_active=False)
+                # Subscriptions.objects.filter(customer=payment.customer, is_active=True).update(is_active=False)
 
                 # ? new subscription
                 validity = datetime.now() + timedelta(days=membership.validity)  # days=payment.membership.validity
