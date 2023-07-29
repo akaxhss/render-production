@@ -1013,13 +1013,20 @@ def scan_dates(request):
 
             details = customer.customer_details.first()
 
+            consultingDoctor = None
             # consulting doctor
             try:
                 # DocDetails = DoctorDetails.objects.get(id=details.referalId.id)
                 DocDetails = details.referalId
-                consultingDoctor = DocDetails.user.firstname + " " + DocDetails.user.lastname
+                if DocDetails:
+                    consultingDoctor = DocDetails.user.firstname + " " + DocDetails.user.lastname
             except DoctorDetails.DoesNotExist:
-                consultingDoctor = ""
+                pass
+            if consultingDoctor is None:
+                return Response({
+                                    "message": "You are not assigned to any doctor. Please contact your administrator to assign a doctor to you."},
+                                status=status.HTTP_200_OK)
+
 
             # customer's last menstruation date
             menstruation_date = details.Menstruation_date
