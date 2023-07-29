@@ -98,7 +98,7 @@ def checkout(request):
                 # email.send()
 
                 # make is_active false after successfull payment
-                payment.customer.is_active = True
+
                 payment.customer.save()
                 # render success page on successful caputre of payment
                 return JsonResponse({"success": "Payment captured successfully.!"}, status=status.HTTP_200_OK)
