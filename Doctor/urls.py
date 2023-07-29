@@ -28,6 +28,7 @@ urlpatterns = [
     path('doctor-filter/', doctor_filter),
 
     path('get-doctors/' , get_doctors),
-    path('get-doctor-appointments/<id>/' , get_doctor_appointments)
+    path('get-doctor-appointments/<id>/' , get_doctor_appointments),
+    path('rejected-appointments/', get_rejected_appointments, name='get_rejected_appointments')
 ]
 

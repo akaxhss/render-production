@@ -11,5 +11,6 @@ urlpatterns = [
     path('get-all-sales/', get_all_sales),
     path('get-all-clients/', get_all_clients),
     path('get-all-clients-of-doctor/', get_all_clients_of_doctor),
+    path('generate_message_notification/<int:user_id>/<str:user_pic>/',generate_message_notification, name='generate_message_notification'),
 ]
 

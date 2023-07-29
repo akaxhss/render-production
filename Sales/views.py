@@ -10,7 +10,7 @@ from .models import InvestigationCriticallity, CustomerCallReposnses ,CallRespon
 import datetime
 from datetime import timedelta, timezone
 # from Accounts.serializers import CustomerSerializer
-from Accounts.models import CustomerDetails
+from Accounts.models import CustomerDetails,DoctorDetails
 from django.contrib.auth import get_user_model
 from Admin.serializers import totalClientSerializer
 from django.db.models import Q
@@ -337,31 +337,32 @@ def all_clients(request):
         return JsonResponse({'error' : 'unauthorized request'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
-@api_view(['GET',])
+@api_view(['GET', ])
 @permission_classes((IsAuthenticated,))
 def no_update_clients(request):
     user = request.user
     time_threshold = datetime.now(timezone.utc) - timedelta(hours=24)
 
     # lastUpdatedPatients = LastUpdateDate.objects.filter(Q(diet__lt = time_threshold) | Q(activity__lt = time_threshold) | Q(symptom__lt = time_threshold) | Q(medicine__lt = time_threshold)).prefetch_related('customer', 'customer__customer_details')
-    if user.role==User.SALES:
+    if user.role == User.SALES:
         lastUpdatedPatients = CustomerDetails.objects.filter(
             Q(user__is_active__in=[True])
             & Q(user__last_update__diet__lt=time_threshold)
             & Q(user__last_update__activity__lt=time_threshold)
             & Q(user__last_update__symptom__lt=time_threshold)
-            & Q(user__last_update__medicine__lt=time_threshold)).prefetch_related('user','referalId', 'referalId__user')
+            & Q(user__last_update__medicine__lt=time_threshold)).prefetch_related('user', 'referalId',
+                                                                                  'referalId__user')
 
         # lastUpdatedPatientSerializer = CustomerLastUpdated24hoursSerilializer(lastUpdatedPatients, many=True)
         lastUpdatedPatientSerializer = ClientDetialSerializer(lastUpdatedPatients, many=True)
-    
+
         return JsonResponse({
-            'clients' : lastUpdatedPatientSerializer.data,
-            'sales_firstname' : user.firstname,
-            'sales_lastname' : user.lastname
+            'clients': lastUpdatedPatientSerializer.data,
+            'sales_firstname': user.firstname,
+            'sales_lastname': user.lastname
         })
     else:
-        return JsonResponse({'error' : 'unauthorized request'}, status=status.HTTP_401_UNAUTHORIZED)
+        return JsonResponse({'error': 'unauthorized request'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 @api_view(['GET',])

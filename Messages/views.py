@@ -173,3 +173,18 @@ def get_all_clients_of_doctor(request):
         return Response({'recentChats' : recent.data, 'remainingChats' : remaining.data})
     else:
         return JsonResponse({'error' : "unauthorized request"}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+
+@api_view(['GET'])
+@permission_classes((IsAuthenticated,))
+def generate_message_notification(request, user_id, user_pic):
+    # Here, you can generate the message notification data based on the provided parameters
+    # For example, you can construct the JSON payload for the notification
+    click_action = "message_screen"
+    notification_data = {
+        "click_action": click_action,
+        "user_id": user_id,
+        "user_pic": user_pic,
+    }
+    return JsonResponse(notification_data)

@@ -363,3 +363,21 @@ def doctor_dashboard_details(request):
             return Response({"Error" : "Id not provided"})
     return Response({'error' : "no permission"}, status=status.HTTP_401_UNAUTHORIZED)
 
+
+@api_view(['GET'])
+@permission_classes((IsAuthenticated,))
+def get_rejected_appointments(request):
+    user = request.user
+    if user.role == User.DOCTOR:
+        try:
+            doctor = DoctorDetails.objects.get(user=user)
+        except DoctorDetails.DoesNotExist:
+            return JsonResponse({"Error": "Doctor not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        rejected_appointments = Appointments.objects.filter(doctor=doctor, rejected=True).prefetch_related('customer', 'customer__user')
+        serializer = AppointmentSerializer(rejected_appointments, many=True)
+        return Response(serializer.data)
+    else:
+        return Response({'error': 'unauthorized request'}, status=status.HTTP_401_UNAUTHORIZED)
+
+

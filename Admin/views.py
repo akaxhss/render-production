@@ -5,6 +5,7 @@ from Sales.models import CustomerCallReposnses, InvestigationCriticallity
 from rest_framework import status
 from rest_framework.response import Response
 from django.db.models import Count
+from Payments.models import *
 from Payments.serializers import Membership2Serializer
 from Accounts.models import CustomerDetails, ConsultantInfo, hospitalManagerDetails
 from Accounts.serializers import ConsultantInfoSerializer, HospitalDetailSerializer
@@ -179,39 +180,21 @@ def change_client_membership(request):
 def subscriptions_data(request):
     user = request.user
     if user.role == User.ADMIN:
-        # allSubscriptions = Subscriptions.objects.all()
-        # activeSubscriptions = allSubscriptions.filter(is_active=True)
-        # basic = activeSubscriptions.filter(membership__name='basic')
-        # standard = activeSubscriptions.filter(membership__name='standard')
-
-        # customers_ids_with_subscriptions = allSubscriptions.values_list('customer')
-
-        # # exclude the above to get the customers that are in the free trail
-        # thresholdDate = datetime.now(timezone.utc) - timedelta(days=30)
-        # trail = CustomerDetails.objects.exclude(user__in=customers_ids_with_subscriptions).filter(user__dateJoined__gte=thresholdDate)
-        # TrailSerializer = totalClientSerializer(trail, many=True)
-        # return JsonResponse({
-        #     'basic' : basic.count(),
-        #     'standard' : standard.count(),
-        #     'trail' : trail.count(),
-        #     'clientsWithTrailPlan' : TrailSerializer.data
-        # })
-
         #  sub counts
-        oneMonthPlan = Subscriptions.objects.filter(membership__name="1 month package")
-        threeMonthPlan = Subscriptions.objects.filter(membership__name="3 month package")
-        pregnancyClass = Subscriptions.objects.filter(membership__name="pregnancy class")
-        fullPregnancyPackage = Subscriptions.objects.filter(membership__name="full pregnancy package")
+        LittleOne = Subscriptions.objects.filter(membership=1)
+        BundleOfJoy = Subscriptions.objects.filter(membership=2)
+        BornWithSilverSpoon = Subscriptions.objects.filter(membership=3)
+        TrialPlan = Subscriptions.objects.filter(membership=4)
 
         # active clients
         activeClients = User.objects.filter(role=User.CLIENT, is_active=True)
         disabledClients = User.objects.filter(role=User.CLIENT, is_active=False)
 
         return JsonResponse({
-            "oneMonthPlan" : oneMonthPlan.count(),
-            "threeMonthPlan" : threeMonthPlan.count(),
-            "pregnancyClass" : pregnancyClass.count(),
-            "fullPregnancyPackage" : fullPregnancyPackage.count(),
+            "LittleOne" : LittleOne.count(),
+            "BundleOfJoy" : BundleOfJoy.count(),
+            "BornWithSilverSpoon" : BornWithSilverSpoon.count(),
+            "TrialPlan" : TrialPlan.count(),
             "activeClients" : activeClients.count(),
             "disabledClients" : disabledClients.count()
         })
