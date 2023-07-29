@@ -71,7 +71,7 @@ def checkout(request):
                     return JsonResponse({"error": "selected plan not found"}, status=status.HTTP_404_NOT_FOUND)
 
                 # ! make the current active plan to inactive
-                Subscriptions.objects.filter(customer=payment.customer, is_active=True).update(is_active=False)
+                Subscriptions.objects.filter(customer=payment.customer, is_active=True).update(is_active=True)
 
                 # ? new subscription
                 validity = datetime.now() + timedelta(days=membership.validity)  # days=payment.membership.validity
@@ -169,7 +169,7 @@ def get_free_subscription(request):
     except MembershipPlans.DoesNotExist:
         return Response({'error': 'membership not found'}, status=status.HTTP_404_NOT_FOUND)
     # ! make the current active plan to inactive
-    Subscriptions.objects.filter(customer=user, is_active=True).update(is_active=False)
+    Subscriptions.objects.filter(customer=user, is_active=True).update(is_active=True)
 
     # ? new subscription
     validity = datetime.now() + timedelta(days=membership.validity)
@@ -231,7 +231,7 @@ def halted(request):
     try:
         sub_id = request.data['payload']['subscription']['entity']['id']
         instance = Subscriptions.objects.get(sub_id=sub_id)
-        instance.is_active = False
+        instance.is_active = True
         instance.save()
     except:
         pass
@@ -504,7 +504,7 @@ class WebHook(APIView):
                 obj.is_paid = True
 
                 user_obj = User.objects.get(id=obj.user.id)
-                user_obj.is_active = False
+                user_obj.is_active = True
                 user_obj.save()
                 obj.save()
 
