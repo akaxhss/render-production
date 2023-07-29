@@ -98,8 +98,8 @@ def checkout(request):
                 # email.send()
 
                 # make is_active false after successfull payment
-                # payment.customer.is_active = False
-                # payment.customer.save()
+                payment.customer.is_active = True
+                payment.customer.save()
                 # render success page on successful caputre of payment
                 return JsonResponse({"success": "Payment captured successfully.!"}, status=status.HTTP_200_OK)
             else:
@@ -175,8 +175,8 @@ def get_free_subscription(request):
     validity = datetime.now() + timedelta(days=membership.validity)
     Subscriptions.objects.create(customer=user, valid_till=make_aware(validity), membership=membership, is_active=True)
     # make account inactive.
-    # user.is_active = False
-    # user.save()
+    user.is_active = True
+    user.save()
     return Response({'success': 'subscribed to free version'})
 
 
