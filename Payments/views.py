@@ -504,7 +504,7 @@ class WebHook(APIView):
                 obj.is_paid = True
 
                 user_obj = User.objects.get(id=obj.user.id)
-                user_obj.is_active = True
+                user_obj.is_active = False
                 user_obj.save()
                 obj.save()
 
