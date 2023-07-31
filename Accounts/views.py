@@ -36,6 +36,7 @@ def landingPage(request):
 @permission_classes((AllowAny,))
 def registration(request):
     context = {}
+    fcm_token = request.data.get('fcm_token', None)
     # to find the user type
     patient = request.data.get('patient', False)
     doctor = request.data.get('doctor', False)
@@ -44,6 +45,10 @@ def registration(request):
     hospitalManager = request.data.get('hospitalManager', False)
     password = request.data.get('password', None)
     password2 = request.data.get('password2', None)
+
+    if fcm_token:
+        user.fcm_token = fcm_token
+        user.save()
 
     userSerializer = RegistrationSerializers(data=request.data, context={'request':request})
     if patient:
@@ -131,6 +136,7 @@ def registration(request):
 @permission_classes((HasAPIKey,))
 def client_registration(request):
     context = {}
+    fcm_token = request.data.get('fcm_token', None)
     password = request.data.get('password', None)
     password2 = request.data.get('password2', None)
     data = request.data.copy()
@@ -140,7 +146,9 @@ def client_registration(request):
     client = User.objects.filter(email=request.data.get('email', None), is_verified=False)
     if client:
         client.delete()
-
+    if fcm_token:
+        user.fcm_token = fcm_token
+        user.save()
     referalId = request.data.get('referalId', None)
     if referalId:
         try:
