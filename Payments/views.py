@@ -71,7 +71,7 @@ def checkout(request):
                     return JsonResponse({"error": "selected plan not found"}, status=status.HTTP_404_NOT_FOUND)
 
                 # ! make the current active plan to inactive
-                Subscriptions.objects.filter(customer=payment.customer, is_active=True).update(is_active=True)
+                Subscriptions.objects.filter(customer=payment.customer, is_active=True).update(is_active=False)
 
                 # ? new subscription
                 validity = datetime.now() + timedelta(days=membership.validity)  # days=payment.membership.validity
@@ -98,7 +98,7 @@ def checkout(request):
                 # email.send()
 
                 # make is_active false after successfull payment
-                payment.customer.is_active = True
+                payment.customer.is_active = False
                 payment.customer.save()
                 # render success page on successful caputre of payment
                 return JsonResponse({"success": "Payment captured successfully.!"}, status=status.HTTP_200_OK)
@@ -169,13 +169,13 @@ def get_free_subscription(request):
     except MembershipPlans.DoesNotExist:
         return Response({'error': 'membership not found'}, status=status.HTTP_404_NOT_FOUND)
     # ! make the current active plan to inactive
-    Subscriptions.objects.filter(customer=user, is_active=True).update(is_active=True)
+    Subscriptions.objects.filter(customer=user, is_active=True).update(is_active=False)
 
     # ? new subscription
     validity = datetime.now() + timedelta(days=membership.validity)
     Subscriptions.objects.create(customer=user, valid_till=make_aware(validity), membership=membership, is_active=True)
     # make account inactive.
-    user.is_active = True
+    user.is_active = False
     user.save()
     return Response({'success': 'subscribed to free version'})
 
@@ -231,7 +231,7 @@ def halted(request):
     try:
         sub_id = request.data['payload']['subscription']['entity']['id']
         instance = Subscriptions.objects.get(sub_id=sub_id)
-        instance.is_active = True
+        instance.is_active = False
         instance.save()
     except:
         pass
@@ -504,7 +504,7 @@ class WebHook(APIView):
                 obj.is_paid = True
 
                 user_obj = User.objects.get(id=obj.user.id)
-                user_obj.is_active = True
+                user_obj.is_active = False
                 user_obj.save()
                 obj.save()
 
