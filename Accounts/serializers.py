@@ -97,10 +97,11 @@ class RegistrationSerializers(serializers.ModelSerializer):
     firstname = serializers.CharField(required=True)
     email = serializers.CharField(required=True,validators=[UniqueValidator(queryset=User.objects.all(),message="An account with this email already exists")])
     profile_pic = serializers.SerializerMethodField(read_only=True)
+    fcm_token = serializers.CharField(allow_blank=True, required=False)
 
     class Meta:
         model = User
-        fields = ['email', 'firstname', 'lastname', 'mobile', 'password', 'password2','id','profile_pic','role']
+        fields = ['email', 'firstname', 'lastname', 'mobile', 'password', 'password2','id','profile_pic','role','fcm_token']
         extra_kwargs = {
             'password' : {'write_only':True}
         }

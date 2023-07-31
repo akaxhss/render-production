@@ -283,6 +283,8 @@ class FirebaseFcm(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='fcm_tokens')
     fcm_token = models.TextField(unique= True)
 
+
+
     
 
 
