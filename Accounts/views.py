@@ -46,9 +46,6 @@ def registration(request):
     password = request.data.get('password', None)
     password2 = request.data.get('password2', None)
 
-    if fcm_token:
-        user.fcm_token = fcm_token
-        user.save()
 
     userSerializer = RegistrationSerializers(data=request.data, context={'request':request})
     if patient:
@@ -100,6 +97,11 @@ def registration(request):
 
     if userSerializerValidation and detailSerializerValidation and not PasswordErrors:
         user = userSerializer.save()
+
+        if fcm_token:
+            user.fcm_token = fcm_token
+            user.save()
+
         if user is not None:
             details.save(user=user)
             context['otpId'] = user.id
@@ -146,10 +148,7 @@ def client_registration(request):
     client = User.objects.filter(email=request.data.get('email', None), is_verified=False)
     if client:
         client.delete()
-    if fcm_token:
-        user.fcm_token = fcm_token
-        user.save()
-    referalId = request.data.get('referalId', None)
+
     if referalId:
         try:
             doctorDetails = DoctorDetails.objects.get(referalId=referalId)
@@ -166,7 +165,13 @@ def client_registration(request):
     # Validations
     userSerializerValidation = userSerializer.is_valid(raise_exception=True)
     detailSerializerValidation = details.is_valid(raise_exception=True)
+    user = userSerializer.save()
     PasswordErrors = dict()
+
+    if fcm_token:
+        user.fcm_token = fcm_token
+        user.save()
+
     try:
         password_validators.validate_password(password=userSerializer.initial_data['password'], user=User)
     except exceptions.ValidationError as e:
