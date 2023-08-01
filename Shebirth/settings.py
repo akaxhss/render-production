@@ -126,8 +126,8 @@ else:
                 'ENGINE': 'django.db.backends.postgresql',
                 'NAME': 'defaultdb',  # myproject
                 'USER': 'avnadmin',  # myprojectuser
-                'PASSWORD': 'AVNS_oMeMfLaEDfUWsNTSrvy', # password
-                'HOST': 'shebirth-production-satheeshakash07.aivencloud.com',
+                'PASSWORD': 'AVNS_zi4QhZLu6B3mU-FI3G4', # password
+                'HOST': 'shebirthtest-satheeshakash07.aivencloud.com',
                 'PORT': '17230',  # 5432
     }
 }

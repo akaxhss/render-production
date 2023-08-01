@@ -1,6 +1,8 @@
 # from datetime import date,datetime
 
 from django.conf import settings
+import string
+from django.utils.crypto import get_random_string
 from django.shortcuts import render
 from .serializers import *
 from django.http import JsonResponse
@@ -21,6 +23,7 @@ import requests
 import json
 # verify email
 from django_email_verification import send_email
+import uuid
 
 User = get_user_model()
 
@@ -30,7 +33,6 @@ User = get_user_model()
 
 def landingPage(request):
     return render(request, 'landingpage.html')
-
 
 @api_view(['POST'])
 # @parser_classes([FormParser,MultiPartParser])
@@ -47,7 +49,7 @@ def registration(request):
     password = request.data.get('password', None)
     password2 = request.data.get('password2', None)
 
-    userSerializer = RegistrationSerializers(data=request.data, context={'request': request})
+    userSerializer = RegistrationSerializers(data=request.data, context={'request':request})
     if patient:
         # check if an account with this email exists that is not otp verified.
         client = User.objects.filter(email=request.data.get('email', None), is_verified=False)
@@ -59,10 +61,9 @@ def registration(request):
             try:
                 doctorDetails = DoctorDetails.objects.get(referalId=referalId)
             except DoctorDetails.DoesNotExist:
-                return JsonResponse({"Invalid referalId": "Doctor with the given Icmr does not exists"},
-                                    status=status.HTTP_404_NOT_FOUND)
+                return JsonResponse({"Invalid referalId" : "Doctor with the given Icmr does not exists"}, status=status.HTTP_404_NOT_FOUND)
         else:
-            return JsonResponse({"referalId": "referalId cannot be blank"}, status=status.HTTP_400_BAD_REQUEST)
+            return JsonResponse({"referalId" : "referalId cannot be blank"}, status=status.HTTP_400_BAD_REQUEST)
 
         data = request.data.copy()
         data['referalId'] = doctorDetails.id
@@ -82,7 +83,8 @@ def registration(request):
         data['passwordString'] = request.data.get('password', None)
         details = HospitalDetailSerializer(data=data)
     else:
-        return JsonResponse({"Error": "Specify the type of user"}, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({"Error" : "Specify the type of user"}, status=status.HTTP_400_BAD_REQUEST)
+
 
     # validations
     userSerializerValidation = userSerializer.is_valid(raise_exception=True)
@@ -91,43 +93,39 @@ def registration(request):
     try:
         password_validators.validate_password(password=userSerializer.initial_data['password'], user=User)
     except exceptions.ValidationError as e:
-        PasswordErrors.update({'password': list(e.messages)})
+        PasswordErrors.update({'password' : list(e.messages)})
     if not sales and not consultant and not hospitalManager and password != password2:
         PasswordErrors.update({'password': 'Passwords does not match.'})
 
     if userSerializerValidation and detailSerializerValidation and not PasswordErrors:
         user = userSerializer.save()
         if user is not None:
-            fcm_token = request.data.get('fcm_token', None)
-            if fcm_token:
-                user.fcm_token = fcm_token
-                user.save()
             details.save(user=user)
             context['otpId'] = user.id
             context['user'] = userSerializer.data
-            context['details'] = details.data
+            context['details'] =  details.data
             if user.role == User.DOCTOR:
                 # send email on confirmation/creation of account
-                subject = 'Account confirmation'
-                html_content = render_to_string('Emails/Doctor/AccountConfirmation.html', {
-                    'title': subject,
-                    "firstname": user.firstname.capitalize()
-                })
-                text_content = strip_tags(html_content)
-                email = EmailMultiAlternatives(subject, text_content, settings.EMAIL_HOST_USER, [user.email])
-                email.attach_alternative(html_content, "text/html")
-                # email.send()
-                # whatsAppMessage = "Just reaching out to inform you that {drName} is waiting for his account verification to join shebirth family,kindly take appropriate actions.\nTo know more :{link}\nThis is a SYSTEM GENERATED MESSAGE".format(
-                #     drName=user.firstname.capitalize() + " " + user.lastname,
-                #     link="link"
-                # )
-                # admin_numbers = User.objects.filter(admin=True,mobile__isnull=False).values_list('mobile')
-                # for number in admin_numbers:
-                #     number = 'whatsapp:91{number}'.format(number=doctor.mobile)
-                #     WhatsAppClient.messages.create(from_=from_number,body=whatsAppMessage,to=number)
+                    subject = 'Account confirmation'
+                    html_content = render_to_string('Emails/Doctor/AccountConfirmation.html', {
+                        'title' : subject,
+                        "firstname" : user.firstname.capitalize()
+                    })
+                    text_content = strip_tags(html_content)
+                    email = EmailMultiAlternatives(subject, text_content, settings.EMAIL_HOST_USER, [user.email])
+                    email.attach_alternative(html_content, "text/html")
+                    # email.send()
+                    # whatsAppMessage = "Just reaching out to inform you that {drName} is waiting for his account verification to join shebirth family,kindly take appropriate actions.\nTo know more :{link}\nThis is a SYSTEM GENERATED MESSAGE".format(
+                    #     drName=user.firstname.capitalize() + " " + user.lastname,
+                    #     link="link"
+                    # )
+                    # admin_numbers = User.objects.filter(admin=True,mobile__isnull=False).values_list('mobile')
+                    # for number in admin_numbers:
+                    #     number = 'whatsapp:91{number}'.format(number=doctor.mobile)
+                    #     WhatsAppClient.messages.create(from_=from_number,body=whatsAppMessage,to=number)
             return JsonResponse(context, status=status.HTTP_201_CREATED)
         else:
-            return JsonResponse({'error': userSerializer.errors})
+            return JsonResponse({'error':userSerializer.errors})
     else:
         context = userSerializer.errors
         context.update(details.errors)
@@ -176,10 +174,6 @@ def client_registration(request):
 
     if userSerializerValidation and detailSerializerValidation and not PasswordErrors:
         user = userSerializer.save()
-        fcm_token = request.data.get('fcm_token', None)
-        if fcm_token:
-            user.fcm_token = fcm_token
-            user.save()
         details.save(user=user)
         context['otpId'] = user.id
         context['success'] = "Successfully registered"
@@ -189,7 +183,6 @@ def client_registration(request):
         context.update(details.errors)
         context.update(PasswordErrors)
         return JsonResponse(context, status=status.HTTP_400_BAD_REQUEST)
-
 
 @api_view(['POST'])
 @permission_classes((HasAPIKey,))
@@ -355,105 +348,75 @@ def hostpital_registration(request):
 
 
 @api_view(['POST'])
-# @permission_classes((HasAPIKey,))
 @permission_classes((AllowAny,))
 def login_view(request):
     serializer = LoginSerializer(data=request.data)
 
-    fcm_token = None
-    data = request.data
-    print(data)
-    if data.get('fcm_token'):
-        fcm_token = fcm_token
-
     if serializer.is_valid(raise_exception=True):
         user = serializer.validated_data['user']
-        print(user.id)
-        print(serializer.validated_data['fcm_token'])
-        user_obj = User.objects.get(pk=user.id)
-        try:
-            FirebaseFcm.objects.create(user=user_obj, fcm_token=serializer.validated_data['fcm_token'])
-        except Exception as e:
-            print(e)
-        # user_obj.fcm_token = serializer.validated_data['fcm_token']
-        # print(user_obj)
-    else:
-        return JsonResponse(serializer.errors)
 
-    token, created = Token.objects.get_or_create(user=user)
+        # Generate a new FCM token (UUID) for the user
+        fcm_token = str(uuid.uuid4())
 
-    user_obj.save()
+        while User.objects.filter(fcm_token=fcm_token).exists():
+            # If a user with the generated FCM token already exists, generate a new one
+            fcm_token = str(uuid.uuid4())
 
-    # Different users
-    if user.role == User.CLIENT:
-        try:
-            print(user.id)
-            Subscription = PurchasedMembership.objects.filter(user__id=user.id, is_paid=True).order_by('-pk')
-            # if Subscription:
-            has_subscription = True
-            subscription_package = Subscription[0].membership.membership_name
-        except Exception as e:
-            has_subscription = False
-            subscription_package = ""
-        context = {
-            'token': token.key,
-            'client': True,
-            'id': user.id,
-            'has_subscription': has_subscription,
-            'subscription_package': subscription_package
-        }
+        user.fcm_token = fcm_token
+        user.save()
+
+        # Try to get the CustomerDetails related to the user or create a new instance
+        customer_details, created = CustomerDetails.objects.get_or_create(user=user, defaults={'fcm_token': fcm_token})
+
+        if not created:
+            # If the instance already exists, update the FCM token
+            customer_details.fcm_token = fcm_token
+            customer_details.save()
+
+        token, created = Token.objects.get_or_create(user=user)
+
+        # Based on user role, prepare the response data
+        if user.role == User.CLIENT:
+            try:
+                Subscription = PurchasedMembership.objects.filter(user__id=user.id, is_paid=True).order_by('-pk')
+                has_subscription = True if Subscription else False
+                subscription_package = Subscription[0].membership.membership_name if has_subscription else ""
+            except Exception as e:
+                has_subscription = False
+                subscription_package = ""
+
+            context = {
+                'token': token.key,
+                'client': True,
+                'id': user.id,
+                'has_subscription': has_subscription,
+                'subscription_package': subscription_package
+            }
+        else:
+            context = {
+                'token': token.key,
+                'user_role': user.role,
+                'id': user.id,
+                'fcm_token': user.fcm_token
+            }
 
         return JsonResponse(context, status=status.HTTP_200_OK)
-    elif user.role == User.DOCTOR:
-        context = {
-            'token': token.key,
-            'doctor': True,
-            'doctorId': user.id,
-            'fcm_token': user_obj.fcm_token
-        }
-        return JsonResponse(context, status=status.HTTP_200_OK)
-    elif user.role == User.SALES:
-        return JsonResponse({
-            "id": user.id,
-            'token': token.key,
-            'sales': True,
-            'fcm_token': user_obj.fcm_token
 
-        })
-    elif user.role == User.ADMIN:
-        return JsonResponse({
-            "id": user.id,
-            'token': token.key,
-            'admin': True,
-            'fcm_token': user_obj.fcm_token
+class LoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(style={'input_type': 'password'})
+    fcm_token = serializers.CharField(required=False, allow_blank=True)
 
-        })
-    elif user.role == User.CONSULTANT:
-        return JsonResponse({
-            "id": user.id,
-            'token': token.key,
-            "consltant": True,
-            'fcm_token': user_obj.fcm_token
+    def validate(self, attrs):
+        email = attrs.get('email')
+        password = attrs.get('password')
+        user = authenticate(email=email, password=password)
 
-        })
+        if not user:
+            raise serializers.ValidationError('Unable to log in with provided credentials.')
 
-    elif user.role == User.DAD:
-        return JsonResponse({
-            "id": user.id,
-            'token': token.key,
-            "dad": True,
-            'fcm_token': user_obj.fcm_token
-
-        })
-    else:  # user.hospitalManager
-        return JsonResponse({
-            "id": user.id,
-            'token': token.key,
-            "hospitalManager": True,
-            'fcm_token': user_obj.fcm_token
-
-        })
-
+        attrs['user'] = user
+        return attrs
 
 @api_view(['POST'])
 @permission_classes((IsAuthenticated,))

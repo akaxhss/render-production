@@ -99,6 +99,8 @@ class RegistrationSerializers(serializers.ModelSerializer):
     profile_pic = serializers.SerializerMethodField(read_only=True)
     fcm_token = serializers.CharField(allow_blank=True, required=False)
 
+
+
     class Meta:
         model = User
         fields = ['email', 'firstname', 'lastname', 'mobile', 'password', 'password2','id','profile_pic','role','fcm_token']
@@ -120,6 +122,12 @@ class RegistrationSerializers(serializers.ModelSerializer):
         # consultant = self.validated_data.get('consultant', False)
         # hospitalManager = self.validated_data.get('hospitalManager', False)
         role = self.validated_data.get('role', None)
+        fcm_token = self.validated_data.get('fcm_token', None)
+
+        if fcm_token:
+            user.fcm_token = fcm_token
+            user.save()
+
        
         if email is not None:
             email = email.lower()
