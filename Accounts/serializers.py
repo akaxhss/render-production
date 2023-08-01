@@ -105,7 +105,10 @@ class RegistrationSerializers(serializers.ModelSerializer):
         model = User
         fields = ['email', 'firstname', 'lastname', 'mobile', 'password', 'password2','id','profile_pic','role','fcm_token']
         extra_kwargs = {
-            'password' : {'write_only':True}
+            'password' : {'write_only':True},
+            'lastname': {'required': True},
+            'mobile': {'required': True},
+            'role': {'required': True},
         }
 
     def save(self):
@@ -122,11 +125,6 @@ class RegistrationSerializers(serializers.ModelSerializer):
         # consultant = self.validated_data.get('consultant', False)
         # hospitalManager = self.validated_data.get('hospitalManager', False)
         role = self.validated_data.get('role', None)
-        fcm_token = self.validated_data.get('fcm_token', None)
-
-        if fcm_token:
-            user.fcm_token = fcm_token
-            user.save()
 
        
         if email is not None:
@@ -228,7 +226,11 @@ class UpdateSerializer(serializers.ModelSerializer):
         # fields = '__all__'
         exclude = ['password', 'last_login', 'is_staff', 'dateJoined','is_verified', 'is_active']
         extra_kwargs = {
-            'password' : {'read_only' : True}
+            'username': {'required': True},
+            'email': {'required': True},
+            'mobile': {'required': True},
+            'location': {'required': True},  # Make location field mandatory
+            # Add other fields here with required=True as needed
         }
 
 class CustomerDetailsSerializer(serializers.ModelSerializer):
