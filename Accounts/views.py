@@ -1012,3 +1012,94 @@ class LogoutAPI(APIView):
         FirebaseFcm.objects.filter(fcm_token=data.get('fcm_token')).delete()
 
         return JsonResponse({'status': True, 'data': {}, "message": "Fcm token removed"})
+
+@api_view(['PATCH'])
+@permission_classes((IsAuthenticated,))
+def update_customer_data(request):
+    # cid = request.data.get('customer', None)
+    user = request.user
+    user_id = user.id
+    # Define the required fields that must be provided for updating customer data
+    required_fields = ["idproof_filename", "age", "weight", "job", "address", "husband", "location"]
+    exclude_fields = ["Idproof", "prescription", "idproof_filename"]
+
+    empty_fields = [field for field, value in request.data.items() if not value and field not in exclude_fields]
+    if empty_fields:
+        return JsonResponse({
+            "error": "All fields must be provided for updating customer data.",
+            "missing_fields": empty_fields,
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    if user.role == User.ADMIN or user.role == User.SALES:
+        data = request.data
+        if data.get('customer_id') is None:
+            return JsonResponse({"error": "customer_id is required."}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            user_id = data.get('customer_id')
+            try:
+                details = CustomerDetails.objects.get(user__id=user_id)
+                print(details)
+            except CustomerDetails.DoesNotExist:
+                return JsonResponse({"error": "Customer details not found."}, status=status.HTTP_404_NOT_FOUND)
+            detailSerializer = CustomerDetailsSerializer(details, data=request.data, partial=True)
+            if detailSerializer.is_valid():
+                detailSerializer.save()
+                return JsonResponse({
+                    "success": "update successfull",
+                    "details": detailSerializer.data,
+                })
+            else:
+                return JsonResponse({
+                    "details": detailSerializer.errors,
+                })
+
+    print(user.role)
+    if True:
+        # password = request.data.get('password', None)
+        if user_id is not None:
+            try:
+                user = User.objects.get(id=user_id)
+            except User.DoesNotExist:
+                return JsonResponse({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+            if user.role == User.CLIENT:
+                try:
+                    details = CustomerDetails.objects.get(user=user_id)
+                except CustomerDetails.DoesNotExist:
+                    return JsonResponse({"error": "Customer details not found."}, status=status.HTTP_404_NOT_FOUND)
+                detailSerializer = CustomerDetailsSerializer(details, data=request.data, partial=True)
+
+            elif user.role == User.DOCTOR:
+                try:
+                    details = DoctorDetails.objects.get(user=user_id)
+                except DoctorDetails.DoesNotExist:
+                    return JsonResponse({"error": "Doctor details not found."}, status=status.HTTP_404_NOT_FOUND)
+                detailSerializer = DocDetailSerializer(details, data=request.data, partial=True,
+                                                       context={'request': request})
+            else:
+                return JsonResponse({'error': 'only doctor and client have profile update feature'},
+                                    status=status.HTTP_403_FORBIDDEN)
+            customerSerializer = UpdateSerializer(user, data=request.data, partial=True)
+        else:
+            return JsonResponse({"Error": "Customer id or email empty"}, status=status.HTTP_400_BAD_REQUEST)
+        user_validation = customerSerializer.is_valid(raise_exception=True)
+        details_validation = detailSerializer.is_valid(raise_exception=True)
+
+        if user_validation and details_validation:
+            user = customerSerializer.save()
+            detailSerializer.save(user=user)
+
+            return JsonResponse({
+                "success": "update successfull",
+                "user": customerSerializer.data,
+                "details": detailSerializer.data,
+            })
+
+        else:
+            return JsonResponse({
+                "customer": customerSerializer.errors,
+                "details": detailSerializer.errors,
+            })
+    else:
+        return JsonResponse({'error': 'unauthorized request'}, status=status.HTTP_401_UNAUTHORIZED)
+
