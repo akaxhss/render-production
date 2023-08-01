@@ -1016,14 +1016,14 @@ class LogoutAPI(APIView):
 @api_view(['PATCH'])
 @permission_classes((IsAuthenticated,))
 def update_customer_data(request):
-    # cid = request.data.get('customer', None)
     user = request.user
     user_id = user.id
     # Define the required fields that must be provided for updating customer data
     required_fields = ["idproof_filename", "age", "weight", "job", "address", "husband", "location"]
     exclude_fields = ["Idproof", "prescription", "idproof_filename"]
 
-    empty_fields = [field for field, value in request.data.items() if not value and field not in exclude_fields]
+    # Check if all the required fields are provided in the request data
+    empty_fields = [field for field in required_fields if field not in exclude_fields and field not in request.data]
     if empty_fields:
         return JsonResponse({
             "error": "All fields must be provided for updating customer data.",
@@ -1103,3 +1103,53 @@ def update_customer_data(request):
     else:
         return JsonResponse({'error': 'unauthorized request'}, status=status.HTTP_401_UNAUTHORIZED)
 
+
+@api_view(['GET'])
+@permission_classes((IsAuthenticated,))
+def get_customer_profile(request):
+    user = request.user
+    try:
+        customer_details = CustomerDetails.objects.get(user=user)
+        serializer = CustomerDetailsSerializer(customer_details)
+
+        # Check if all the required fields are filled
+        required_fields = [
+            "age", "weight", "job", "address", "husband", "location",
+            "marriedSince", "babies_number", "abortions", "twins", "diabetes",
+            "allergic_reaction", "surgery", "Menstruation", "Menstruation_date",
+            "hereditory", "gynacology", "no_of_babies_pregnant_with",
+            "doctor_final_visit", "drugUse"
+        ]
+
+        all_required_fields_filled = all(
+            getattr(customer_details, field) is not None and str(getattr(customer_details, field)) != ""
+            for field in required_fields
+        )
+
+        # Convert fields that can be converted to integers
+        try:
+            customer_details.weight = int(customer_details.weight)
+        except (TypeError, ValueError):
+            pass
+
+        try:
+            customer_details.babies_number = int(customer_details.babies_number)
+        except (TypeError, ValueError):
+            pass
+
+        try:
+            customer_details.no_of_babies_pregnant_with = int(customer_details.no_of_babies_pregnant_with)
+        except (TypeError, ValueError):
+            pass
+
+        # Add a flag to the serializer data
+        serializer.data["all_required_fields_filled"] = all_required_fields_filled
+
+        response_data = {
+            "customer_details": serializer.data,
+            "flag": all_required_fields_filled  # Flag that shows true if all fields are filled, false otherwise
+        }
+
+        return Response(response_data)
+    except CustomerDetails.DoesNotExist:
+        return Response({"error": "Customer details not found."}, status=status.HTTP_404_NOT_FOUND)

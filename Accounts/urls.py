@@ -23,6 +23,7 @@ urlpatterns = [
     path('profile-update/', update_profile),
     #new patch for editing #01/08/2023
     path('update-customer-data/', update_customer_data, name='update_customer_data'),
+    path('get-customer-profile/',get_customer_profile),
 
     # email verification
     path('send-verification-email/', email_verification),
