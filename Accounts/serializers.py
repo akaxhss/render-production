@@ -234,7 +234,7 @@ class UpdateSerializer(serializers.ModelSerializer):
         }
 
 class CustomerDetailsSerializer(serializers.ModelSerializer):
-    idproof_filename = serializers.SerializerMethodField(read_only=True)
+    # idproof_filename = serializers.SerializerMethodField(read_only=True)
     class Meta: 
         model = CustomerDetails
         fields = '__all__'

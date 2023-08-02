@@ -1126,15 +1126,19 @@ def update_customer_data(request):
     user = request.user
     user_id = user.id
     # Define the required fields that must be provided for updating customer data
-    required_fields = ["idproof_filename", "age", "weight", "job", "address", "husband", "location"]
-    exclude_fields = ["Idproof", "prescription", "idproof_filename"]
+    required_fields =  [
+            "age", "weight", "job", "address", "husband", "location",
+            "marriedSince", "babies_number", "abortions", "twins", "diabetes",
+            "allergic_reaction", "surgery", "Menstruation", "Menstruation_date",
+            "hereditory", "gynacology", "no_of_babies_pregnant_with",
+            "doctor_final_visit", "drugUse","Idproof","prescription"
+        ]
 
     # Check if all the required fields are provided in the request data
-    empty_fields = [field for field in required_fields if field not in exclude_fields and field not in request.data]
-    if empty_fields:
+    missing_fields = [field for field in required_fields if field not in request.data]
+    if missing_fields:
         return JsonResponse({
-            "error": "All fields must be provided for updating customer data.",
-            "missing_fields": empty_fields,
+            "error": "All fields are required. Missing fields: {}".format(", ".join(missing_fields)),
         }, status=status.HTTP_400_BAD_REQUEST)
 
     if user.role == User.ADMIN or user.role == User.SALES:
@@ -1152,7 +1156,7 @@ def update_customer_data(request):
             if detailSerializer.is_valid():
                 detailSerializer.save()
                 return JsonResponse({
-                    "success": "update successfull",
+                    "success": "update successful",
                     "details": detailSerializer.data,
                 })
             else:
@@ -1197,7 +1201,7 @@ def update_customer_data(request):
             detailSerializer.save(user=user)
 
             return JsonResponse({
-                "success": "update successfull",
+                "success": "update successful",
                 "user": customerSerializer.data,
                 "details": detailSerializer.data,
             })
@@ -1225,15 +1229,18 @@ def get_customer_profile(request):
             "marriedSince", "babies_number", "abortions", "twins", "diabetes",
             "allergic_reaction", "surgery", "Menstruation", "Menstruation_date",
             "hereditory", "gynacology", "no_of_babies_pregnant_with",
-            "doctor_final_visit", "drugUse"
+            "doctor_final_visit", "drugUse","Idproof","prescription"
         ]
 
+        # Check if any required field is None, an empty string, or "null"
         all_required_fields_filled = all(
-            getattr(customer_details, field) is not None and str(getattr(customer_details, field)) != ""
+            getattr(customer_details, field) is not None and str(getattr(customer_details, field)).strip().lower() not in ["", "null"]
             for field in required_fields
         )
+
+        # Check if referalId is not None, an empty string, or "null"
         if customer_details.referalId is not None:
-            all_required_fields_filled = all_required_fields_filled and str(customer_details.referalId) != ""
+            all_required_fields_filled = all_required_fields_filled and str(customer_details.referalId).strip().lower() not in ["", "null"]
 
         # Convert fields that can be converted to integers
         try:
@@ -1251,8 +1258,11 @@ def get_customer_profile(request):
         except (TypeError, ValueError):
             pass
 
-        # Add a flag to the serializer data
-        serializer.data["all_required_fields_filled"] = all_required_fields_filled
+        # Add a flag to the serializer data only if all required fields are filled
+        if all_required_fields_filled:
+            serializer.data["all_required_fields_filled"] = True
+        else:
+            serializer.data["all_required_fields_filled"] = False
 
         response_data = {
             "customer_details": serializer.data,
