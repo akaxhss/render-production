@@ -160,6 +160,9 @@ def client_registration(request):
 
     userSerializer = RegistrationSerializers(data=data, context={'request': request})
     details = CustomerDetailsSerializer(data=data)
+    # Check if 'age' is provided in the request data. If not, set it to None.
+    if 'age' not in data:
+        data['age'] = None
 
     # Validations
     userSerializerValidation = userSerializer.is_valid(raise_exception=True)
@@ -346,61 +349,165 @@ def hostpital_registration(request):
         context.update(PasswordErrors)
         return JsonResponse(context, status=status.HTTP_400_BAD_REQUEST)
 
-
 @api_view(['POST'])
+# @permission_classes((HasAPIKey,))
 @permission_classes((AllowAny,))
 def login_view(request):
+
     serializer = LoginSerializer(data=request.data)
+
+    fcm_token = None
+    data = request.data
+    print(data)
+    if data.get('fcm_token'):
+        fcm_token = fcm_token
+
 
     if serializer.is_valid(raise_exception=True):
         user = serializer.validated_data['user']
+        print(user.id)
+        print(serializer.validated_data['fcm_token'])
+        user_obj = User.objects.get(pk = user.id)
+        try:
+            FirebaseFcm.objects.create(user = user_obj , fcm_token = serializer.validated_data['fcm_token'])
+        except Exception as e:
+            print(e)
+        # user_obj.fcm_token = serializer.validated_data['fcm_token']
+        # print(user_obj)
+    else:
+        return JsonResponse(serializer.errors)
 
-        # Generate a new FCM token (UUID) for the user
-        fcm_token = str(uuid.uuid4())
+    token, created = Token.objects.get_or_create(user=user)
 
-        while User.objects.filter(fcm_token=fcm_token).exists():
-            # If a user with the generated FCM token already exists, generate a new one
-            fcm_token = str(uuid.uuid4())
 
-        user.fcm_token = fcm_token
-        user.save()
 
-        # Try to get the CustomerDetails related to the user or create a new instance
-        customer_details, created = CustomerDetails.objects.get_or_create(user=user, defaults={'fcm_token': fcm_token})
+    user_obj.save()
 
-        if not created:
-            # If the instance already exists, update the FCM token
-            customer_details.fcm_token = fcm_token
-            customer_details.save()
+    # Different users
+    if user.role == User.CLIENT:
+        try:
+            print(user.id)
+            Subscription = PurchasedMembership.objects.filter(user__id=user.id,is_paid=True).order_by('-pk')
+            # if Subscription:
+            has_subscription = True
+            subscription_package = Subscription[0].membership.membership_name
+        except Exception as e:
+            has_subscription = False
+            subscription_package = ""
+        context = {
+            'token' : token.key,
+            'client' : True,
+            'id' : user.id,
+            'has_subscription' : has_subscription,
+            'subscription_package' : subscription_package
+        }
 
-        token, created = Token.objects.get_or_create(user=user)
-
-        # Based on user role, prepare the response data
-        if user.role == User.CLIENT:
-            try:
-                Subscription = PurchasedMembership.objects.filter(user__id=user.id, is_paid=True).order_by('-pk')
-                has_subscription = True if Subscription else False
-                subscription_package = Subscription[0].membership.membership_name if has_subscription else ""
-            except Exception as e:
-                has_subscription = False
-                subscription_package = ""
-
-            context = {
-                'token': token.key,
-                'client': True,
-                'id': user.id,
-                'has_subscription': has_subscription,
-                'subscription_package': subscription_package
-            }
-        else:
-            context = {
-                'token': token.key,
-                'user_role': user.role,
-                'id': user.id,
-                'fcm_token': user.fcm_token
-            }
-
+        return JsonResponse(context,status=status.HTTP_200_OK)
+    elif user.role == User.DOCTOR:
+        context = {
+            'token' : token.key,
+            'doctor' : True,
+            'doctorId' : user.id,
+            'fcm_token' : user_obj.fcm_token
+        }
         return JsonResponse(context, status=status.HTTP_200_OK)
+    elif user.role == User.SALES:
+        return JsonResponse({
+            "id" : user.id,
+            'token' : token.key,
+            'sales' : True,
+            'fcm_token' : user_obj.fcm_token
+
+        })
+    elif user.role == User.ADMIN:
+        return JsonResponse({
+            "id" : user.id,
+            'token' : token.key,
+            'admin' : True     ,
+            'fcm_token' : user_obj.fcm_token
+
+        })
+    elif user.role == User.CONSULTANT:
+        return JsonResponse({
+            "id" : user.id,
+            'token' : token.key,
+            "consltant" : True,
+            'fcm_token' : user_obj.fcm_token
+
+        })
+
+    elif user.role == User.DAD:
+        return JsonResponse({
+            "id" : user.id,
+            'token' : token.key,
+            "dad" : True,
+            'fcm_token' : user_obj.fcm_token
+
+        })
+    else: #user.hospitalManager
+        return JsonResponse({
+            "id" : user.id,
+            'token' : token.key,
+            "hospitalManager" : True,
+            'fcm_token' : user_obj.fcm_token
+
+        })
+
+
+# @api_view(['POST'])
+# @permission_classes((AllowAny,))
+# def login_view(request):
+#     serializer = LoginSerializer(data=request.data)
+#
+#     if serializer.is_valid(raise_exception=True):
+#         user = serializer.validated_data['user']
+#
+#         # Generate a new FCM token (UUID) for the user
+#         fcm_token = str(uuid.uuid4())
+#
+#         while User.objects.filter(fcm_token=fcm_token).exists():
+#             # If a user with the generated FCM token already exists, generate a new one
+#             fcm_token = str(uuid.uuid4())
+#
+#         user.fcm_token = fcm_token
+#         user.save()
+#
+#         # Try to get the CustomerDetails related to the user or create a new instance
+#         customer_details, created = CustomerDetails.objects.get_or_create(user=user, defaults={'fcm_token': fcm_token})
+#
+#         if not created:
+#             # If the instance already exists, update the FCM token
+#             customer_details.fcm_token = fcm_token
+#             customer_details.save()
+#
+#         token, created = Token.objects.get_or_create(user=user)
+#
+#         # Based on user role, prepare the response data
+#         if user.role == User.CLIENT:
+#             try:
+#                 Subscription = PurchasedMembership.objects.filter(user__id=user.id, is_paid=True).order_by('-pk')
+#                 has_subscription = True if Subscription else False
+#                 subscription_package = Subscription[0].membership.membership_name if has_subscription else ""
+#             except Exception as e:
+#                 has_subscription = False
+#                 subscription_package = ""
+#
+#             context = {
+#                 'token': token.key,
+#                 'client': True,
+#                 'id': user.id,
+#                 'has_subscription': has_subscription,
+#                 'subscription_package': subscription_package
+#             }
+#         else:
+#             context = {
+#                 'token': token.key,
+#                 'user_role': user.role,
+#                 'id': user.id,
+#                 'fcm_token': user.fcm_token
+#             }
+#
+#         return JsonResponse(context, status=status.HTTP_200_OK)
 
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
@@ -1125,6 +1232,8 @@ def get_customer_profile(request):
             getattr(customer_details, field) is not None and str(getattr(customer_details, field)) != ""
             for field in required_fields
         )
+        if customer_details.referalId is not None:
+            all_required_fields_filled = all_required_fields_filled and str(customer_details.referalId) != ""
 
         # Convert fields that can be converted to integers
         try:

@@ -238,6 +238,9 @@ class CustomerDetailsSerializer(serializers.ModelSerializer):
     class Meta: 
         model = CustomerDetails
         fields = '__all__'
+        extra_kwargs = {
+            'referalId': {'required': False}
+        }
 
     def get_idproof_filename(self,obj):
         try:
