@@ -1129,7 +1129,7 @@ def update_customer_data(request):
     required_fields =  [
             "age", "weight", "job", "address", "husband", "location",
             "marriedSince", "babies_number", "abortions", "twins", "diabetes",
-            "allergic_reaction", "surgery", "Menstruation", "Menstruation_date",
+            "allergic_reaction", "surgery", "Menstruation",
             "hereditory", "gynacology", "no_of_babies_pregnant_with",
             "doctor_final_visit", "drugUse","Idproof","prescription"
         ]
