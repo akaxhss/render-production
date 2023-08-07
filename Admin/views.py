@@ -10,7 +10,7 @@ from Payments.serializers import Membership2Serializer
 from Accounts.models import CustomerDetails, ConsultantInfo, hospitalManagerDetails,DoctorDetails
 from Accounts.serializers import ConsultantInfoSerializer, HospitalDetailSerializer,DoctorRegSerializer
 from django.http import JsonResponse
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated, AllowAny,BasePermission,IsAdminUser
 from rest_framework.decorators import api_view, permission_classes , authentication_classes
 from datetime import datetime, timedelta
 from django.contrib.auth import get_user_model
@@ -694,9 +694,12 @@ class FreeContentAPI(APIView):
 
 
 
-
+class IsSalesTeamMember(BasePermission):
+    def has_permission(self, request, view):
+        user = request.user
+        return user.role == User.SALES
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAdminUser | IsSalesTeamMember])
 def doctor_details(request):
     referal_id = request.query_params.get('referal_id', None)
 
