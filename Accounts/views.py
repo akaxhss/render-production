@@ -13,7 +13,7 @@ from rest_framework_api_key.permissions import HasAPIKey
 from rest_framework.authtoken.models import Token
 from .models import *
 from django.core import exceptions
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated, AllowAny  ,IsAdminUser
 from django.contrib.auth import get_user_model, password_validation as password_validators
 from django.conf import settings
 from django.utils import timezone
@@ -349,10 +349,66 @@ def hostpital_registration(request):
         context.update(PasswordErrors)
         return JsonResponse(context, status=status.HTTP_400_BAD_REQUEST)
 
+
+from django.contrib.auth import authenticate, login as django_login
+
 @api_view(['POST'])
 # @permission_classes((HasAPIKey,))
 @permission_classes((AllowAny,))
 def login_view(request):
+    data = request.data
+    print(data)
+
+    # Check if the user is already authenticated
+    if request.user.is_authenticated:
+        print("User is already authenticated.")
+        # Continue with the remaining logic
+        serializer = LoginSerializer(data=data)
+        # ... (existing code for the rest of the view)
+        return
+
+    email = data.get('email')
+    password = data.get('password')
+    user = authenticate(request, username=email, password=password)
+
+    if user is not None:
+        if not user.is_active:
+            if email == user.email and password == user.password:
+                return JsonResponse(
+                    {
+                        "error": "Please call your sales person to make this account activate."
+                    },
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+            elif email == user.email:
+                return JsonResponse(
+                    {
+                        "error": "The provided password is incorrect."
+                    },
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+            elif password == user.password:
+                return JsonResponse(
+                    {
+                        "error": "The provided email is incorrect."
+                    },
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+        else:
+            # Log the user in
+            django_login(request, user)
+            print("User is logged in successfully.")
+
+            # Continue with the remaining logic
+            serializer = LoginSerializer(data=data)
+            # ... (existing code for the rest of the view)
+    else:
+        return JsonResponse(
+            {
+                "error": "The provided email or password is incorrect."
+            },
+            status=status.HTTP_401_UNAUTHORIZED
+        )
 
     serializer = LoginSerializer(data=request.data)
 
@@ -1272,3 +1328,51 @@ def get_customer_profile(request):
         return Response(response_data)
     except CustomerDetails.DoesNotExist:
         return Response({"error": "Customer details not found."}, status=status.HTTP_404_NOT_FOUND)
+
+# this code is working as patch well
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def admin_update_customer_data(request):
+    user_id = request.query_params.get('user_id')
+    if not user_id:
+        return Response({"error": "user_id parameter is required."}, status=400)
+
+    try:
+        customer = CustomerDetails.objects.get(user__id=user_id)
+    except CustomerDetails.DoesNotExist:
+        return Response({"error": "Customer not found for the specified user_id."}, status=404)
+
+    serializer = CustomerDetailsSerializer(customer, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data)
+    return Response(serializer.errors, status=400)
+
+
+
+# @api_view(['PATCH'])
+# @permission_classes([IsAuthenticated, IsAdminUser])
+# def admin_update_customer_data(request):
+#     user_id = request.query_params.get('user_id')
+#     if not user_id:
+#         return Response({"error": "user_id parameter is required."}, status=400)
+#
+#     try:
+#         user = User.objects.get(id=user_id)
+#         customer = user.customer_details.get()  # Use the related manager's get() method
+#     except User.DoesNotExist:
+#         return Response({"error": "User not found."}, status=404)
+#     except CustomerDetails.DoesNotExist:
+#         return Response({"error": "CustomerDetails not found for the user."}, status=404)
+#
+#     # Update User fields
+#     user_serializer = RegistrationSerializers(user, data=request.data.get('user', {}), partial=True)
+#     if user_serializer.is_valid():
+#         user_serializer.save()
+#
+#     # Update CustomerDetails fields
+#     customer_serializer = CustomerSerializer(customer, data=request.data.get('details', {}), partial=True)
+#     if customer_serializer.is_valid():
+#         customer_serializer.save()
+#
+#     return Response({"success": "update successful"})

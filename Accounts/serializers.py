@@ -377,3 +377,8 @@ class SymptomsRemedySerializer(serializers.ModelSerializer):
     class Meta:
         model = SymptomsRemedy
         fields = '__all__'
+
+class AdminUpdateCustomerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'firstname', 'lastname', 'week', 'daysCompleted', 'daysLeft', 'dateJoined', 'subscription_package']
