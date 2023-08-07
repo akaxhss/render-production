@@ -213,9 +213,13 @@ class LoginSerializer(serializers.Serializer):
 
 class DoctorRegSerializer(serializers.ModelSerializer):
     referalId = serializers.CharField(required=True,validators=[UniqueValidator(queryset=DoctorDetails.objects.all(),message="referal id must be unique")])
+    user_name = serializers.CharField(source='user.firstname', read_only=True)
+    user_email = serializers.EmailField(source='user.email', read_only=True)
+    user_phone = serializers.CharField(source='user.mobile', read_only=True)
+
     class Meta:
         model = DoctorDetails
-        fields = '__all__'
+        fields = ['referalId', 'user_name', 'user_email', 'user_phone', 'location']
 
 
 # Profile Update Serializers .

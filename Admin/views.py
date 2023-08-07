@@ -7,8 +7,8 @@ from rest_framework.response import Response
 from django.db.models import Count
 from Payments.models import *
 from Payments.serializers import Membership2Serializer
-from Accounts.models import CustomerDetails, ConsultantInfo, hospitalManagerDetails
-from Accounts.serializers import ConsultantInfoSerializer, HospitalDetailSerializer
+from Accounts.models import CustomerDetails, ConsultantInfo, hospitalManagerDetails,DoctorDetails
+from Accounts.serializers import ConsultantInfoSerializer, HospitalDetailSerializer,DoctorRegSerializer
 from django.http import JsonResponse
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import api_view, permission_classes , authentication_classes
@@ -694,3 +694,25 @@ class FreeContentAPI(APIView):
 
 
 
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def doctor_details(request):
+    referal_id = request.query_params.get('referal_id', None)
+
+    # If referral ID is provided, retrieve a single doctor's details
+    if referal_id:
+        if not referal_id[0].isalpha() or not referal_id[1:].isdigit():
+            return Response({'error': 'Invalid referral ID format.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            doctor = DoctorDetails.objects.get(referalId=referal_id)
+            serializer = DoctorRegSerializer(doctor)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except DoctorDetails.DoesNotExist:
+            return JsonResponse({'error': 'Doctor details not found.'}, status=status.HTTP_404_NOT_FOUND)
+    else:
+        # If no referral ID is provided, retrieve a list of all doctor details
+        doctors = DoctorDetails.objects.all()
+        serializer = DoctorRegSerializer(doctors, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

@@ -57,6 +57,7 @@ urlpatterns = [
     path('get-critical-symptoms/', get_critical_symptoms),
     path('submit-critical-symptom/', submit_critical_symptom),
          
-    path('free-content/' , FreeContentAPI.as_view())
+    path('free-content/' , FreeContentAPI.as_view()),
+    path('doctor-details/', doctor_details, name='doctor-details')
 ]
 
