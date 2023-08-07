@@ -13,7 +13,7 @@ from rest_framework_api_key.permissions import HasAPIKey
 from rest_framework.authtoken.models import Token
 from .models import *
 from django.core import exceptions
-from rest_framework.permissions import IsAuthenticated, AllowAny  ,IsAdminUser
+from rest_framework.permissions import IsAuthenticated, AllowAny  ,IsAdminUser,BasePermission
 from django.contrib.auth import get_user_model, password_validation as password_validators
 from django.conf import settings
 from django.utils import timezone
@@ -1329,9 +1329,15 @@ def get_customer_profile(request):
     except CustomerDetails.DoesNotExist:
         return Response({"error": "Customer details not found."}, status=status.HTTP_404_NOT_FOUND)
 
+
+class IsSalesTeamMember(BasePermission):
+    def has_permission(self, request, view):
+        user = request.user
+        return user.role == User.SALES
+
 # this code is working as patch well
 @api_view(['PATCH'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated,( IsAdminUser | IsSalesTeamMember)])
 def admin_update_customer_data(request):
     user_id = request.query_params.get('user_id')
     if not user_id:
