@@ -10,6 +10,8 @@ from .models import *
 # from django.core.mail import send_mail
 from Customer.models import LastUpdateDate
 
+from Accounts.serializers import *
+
 from django.conf import settings
 # from django_email_verification import send_email
 # for email
@@ -237,14 +239,55 @@ class UpdateSerializer(serializers.ModelSerializer):
             # Add other fields here with required=True as needed
         }
 
+class CustomReferalIdField(serializers.RelatedField):
+    def to_representation(self, value):
+        if value:
+            return value.referalId
+        return None
+class DoctorDetailsSerializer(serializers.ModelSerializer):
+    referalId_Name = serializers.CharField(source='referalId', read_only=True)
+    user_name = serializers.CharField(source='user.firstname', read_only=True)
+    user_email = serializers.EmailField(source='user.email', read_only=True)
+    user_phone = serializers.CharField(source='user.mobile', read_only=True)
+    location = serializers.CharField(read_only=True)
+    class Meta:
+        model = DoctorDetails
+        fields = ['referalId_Name', 'user_name', 'user_email', 'user_phone', 'location','id']
+
+
 class CustomerDetailsSerializer(serializers.ModelSerializer):
-    # idproof_filename = serializers.SerializerMethodField(read_only=True)
-    class Meta: 
+    Doctor_Details = DoctorDetailsSerializer(source='referalId', read_only=True)  # Nested serializer
+
+    class Meta:
         model = CustomerDetails
-        fields = '__all__'
+        exclude = ('id',)  # Exclude only the 'id' field from the response
         extra_kwargs = {
             'referalId': {'required': False}
         }
+
+    def get_Doctor_Details(self, obj):
+        # Get the nested object (referalId) from the main object (CustomerDetails)
+        nested_obj = obj.referalId
+        if nested_obj:
+            # Return a dictionary with only the 'referalId_Name' field
+            return {"referalId_Name": nested_obj.referalId_Name}
+        return None  # Return None if the nested object is not present
+
+    def update(self, instance, validated_data):
+        referal_id_details = validated_data.pop('referalId_details', None)
+
+        if referal_id_details is not None:
+            try:
+                referal_obj = DoctorDetails.objects.get(referalId=referal_id_details)
+                instance.referalId = referal_obj
+            except DoctorDetails.DoesNotExist:
+                pass
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+        return instance
 
     def get_idproof_filename(self,obj):
         try:
@@ -386,3 +429,5 @@ class AdminUpdateCustomerSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'firstname', 'lastname', 'week', 'daysCompleted', 'daysLeft', 'dateJoined', 'subscription_package']
+
+

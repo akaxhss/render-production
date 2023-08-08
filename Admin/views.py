@@ -8,7 +8,7 @@ from django.db.models import Count
 from Payments.models import *
 from Payments.serializers import Membership2Serializer
 from Accounts.models import CustomerDetails, ConsultantInfo, hospitalManagerDetails,DoctorDetails
-from Accounts.serializers import ConsultantInfoSerializer, HospitalDetailSerializer,DoctorRegSerializer
+from Accounts.serializers import ConsultantInfoSerializer, HospitalDetailSerializer,DoctorRegSerializer,DoctorDetailsSerializer
 from django.http import JsonResponse
 from rest_framework.permissions import IsAuthenticated, AllowAny,BasePermission,IsAdminUser
 from rest_framework.decorators import api_view, permission_classes , authentication_classes
@@ -701,6 +701,11 @@ class IsSalesTeamMember(BasePermission):
 @api_view(['GET'])
 @permission_classes([IsAdminUser | IsSalesTeamMember])
 def doctor_details(request):
+    try:
+        user_role = request.user.role
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+
     referal_id = request.query_params.get('referal_id', None)
 
     # If referral ID is provided, retrieve a single doctor's details
@@ -710,12 +715,12 @@ def doctor_details(request):
 
         try:
             doctor = DoctorDetails.objects.get(referalId=referal_id)
-            serializer = DoctorRegSerializer(doctor)
+            serializer = DoctorDetailsSerializer(doctor)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except DoctorDetails.DoesNotExist:
             return JsonResponse({'error': 'Doctor details not found.'}, status=status.HTTP_404_NOT_FOUND)
     else:
         # If no referral ID is provided, retrieve a list of all doctor details
         doctors = DoctorDetails.objects.all()
-        serializer = DoctorRegSerializer(doctors, many=True)
+        serializer = DoctorDetailsSerializer(doctors, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
