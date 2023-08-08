@@ -44,7 +44,7 @@ def get_all_messages(request):
         receiver = request.query_params.get('receiver', None)
         if receiver is not None:
             try:
-                receiver = User.objects.get(id=receiver)
+                receiver = User.objects.get(id=receiver) # Adding is_active=True condition ,is_active=True
                 receiverDetails['id'] =  receiver.id
                 receiverDetails['image_url'] = "https://" + str(get_current_site(request)) + "/media/" + str(receiver.profile_img)
                 receiverDetails['name'] = receiver.firstname + " " + receiver.lastname if receiver.lastname is not None else receiver.firstname
@@ -142,8 +142,6 @@ def get_all_clients(request):
     serializer = AllClientSerializer(clients, many=True, context={'request' : request})
     return JsonResponse(serializer.data, safe=False)
 
-
-
 @api_view(['GET',])
 @permission_classes((IsAuthenticated,))
 def get_all_clients_of_doctor(request):
@@ -163,18 +161,48 @@ def get_all_clients_of_doctor(request):
             else:
                 clients_id.append(msg.receiver.id)
 
-        # recentConsultants = User.objects.filter(id__in=consultants_id)
-        recent_clients = User.objects.filter(role=User.CLIENT,id__in=clients_id,customer_details__referalId=details.id)   
-        remaining_clients = User.objects.filter(role=User.CLIENT, customer_details__referalId=details.id).exclude(id__in=clients_id)   
+        recent_clients = User.objects.filter(role=User.CLIENT, id__in=clients_id, customer_details__referalId=details.id, is_active=True)
+        remaining_clients = User.objects.filter(role=User.CLIENT, customer_details__referalId=details.id, is_active=True).exclude(id__in=clients_id)
 
-        recent = AllUserSerializer(recent_clients, many=True, context={'request':request})
-        remaining = AllUserSerializer(remaining_clients, many=True, context={'request':request})
+        recent = AllUserSerializer(recent_clients, many=True, context={'request': request})
+        remaining = AllUserSerializer(remaining_clients, many=True, context={'request': request})
 
-        return Response({'recentChats' : recent.data, 'remainingChats' : remaining.data})
+        return Response({'recentChats': recent.data, 'remainingChats': remaining.data})
     else:
-        return JsonResponse({'error' : "unauthorized request"}, status=status.HTTP_401_UNAUTHORIZED)
+        return JsonResponse({'error': "unauthorized request"}, status=status.HTTP_401_UNAUTHORIZED)
 
 
+# @api_view(['GET',])
+# @permission_classes((IsAuthenticated,))
+# def get_all_clients_of_doctor(request):
+#     user = request.user
+#     if user.role == User.DOCTOR:
+#         id = user.id
+#         clients_id = []
+#         try:
+#             details = user.docDetails.first()
+#         except DoctorDetails.DoesNotExist:
+#             return JsonResponse({"error" : "doctor not found"}, status=status.HTTP_404_NOT_FOUND)
+#
+#         msgs = Messages.objects.filter(Q(sender=id)|Q(receiver=id)).prefetch_related('sender', 'receiver').distinct('sender', 'receiver')
+#         for msg in msgs:
+#             if msg.sender.role == User.CLIENT:
+#                 clients_id.append(msg.sender.id)
+#             else:
+#                 clients_id.append(msg.receiver.id)
+#
+#         # recentConsultants = User.objects.filter(id__in=consultants_id)
+#         recent_clients = User.objects.filter(role=User.CLIENT,id__in=clients_id,customer_details__referalId=details.id)
+#         remaining_clients = User.objects.filter(role=User.CLIENT, customer_details__referalId=details.id).exclude(id__in=clients_id)
+#
+#         recent = AllUserSerializer(recent_clients, many=True, context={'request':request})
+#         remaining = AllUserSerializer(remaining_clients, many=True, context={'request':request})
+#
+#         return Response({'recentChats' : recent.data, 'remainingChats' : remaining.data})
+#     else:
+#         return JsonResponse({'error' : "unauthorized request"}, status=status.HTTP_401_UNAUTHORIZED)
+#
+#
 
 @api_view(['GET'])
 @permission_classes((IsAuthenticated,))
