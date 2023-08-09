@@ -63,6 +63,7 @@ def get_all_messages(request):
         return Response({'error' : 'unauthorized request'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
+##get isactive
 @api_view(['GET',])
 @permission_classes((IsAuthenticated,))
 def get_all_consultants(request):
@@ -76,11 +77,31 @@ def get_all_consultants(request):
         else:
             consultants_id.append(msg.receiver.id)
     # recentConsultants = User.objects.filter(id__in=consultants_id)
-    recentConsultants = User.objects.filter(role=User.CONSULTANT,id__in=consultants_id)   
-    remainingConsultants = User.objects.filter(role=User.CONSULTANT).exclude(id__in=consultants_id)        
+    recentConsultants = User.objects.filter(role=User.CONSULTANT, id__in=consultants_id, is_active=True)
+    remainingConsultants = User.objects.filter(role=User.CONSULTANT, is_active=True).exclude(id__in=consultants_id)
     recent = AllUserSerializer(recentConsultants, many=True, context={'request':request})
     remaining = AllUserSerializer(remainingConsultants, many=True, context={'request':request})
     return Response({'recentChats' : recent.data, 'remainingChats' : remaining.data})
+
+
+# @api_view(['GET',])
+# @permission_classes((IsAuthenticated,))
+# def get_all_consultants(request):
+#     user = request.user
+#     consultants_id = []
+#     id = user.id
+#     msgs = Messages.objects.filter(Q(sender=id)|Q(receiver=id)).prefetch_related('sender', 'receiver').distinct('sender', 'receiver')
+#     for msg in msgs:
+#         if msg.sender.role ==  User.CONSULTANT:
+#             consultants_id.append(msg.sender.id)
+#         else:
+#             consultants_id.append(msg.receiver.id)
+#     # recentConsultants = User.objects.filter(id__in=consultants_id)
+#     recentConsultants = User.objects.filter(role=User.CONSULTANT,id__in=consultants_id)
+#     remainingConsultants = User.objects.filter(role=User.CONSULTANT).exclude(id__in=consultants_id)
+#     recent = AllUserSerializer(recentConsultants, many=True, context={'request':request})
+#     remaining = AllUserSerializer(remainingConsultants, many=True, context={'request':request})
+#     return Response({'recentChats' : recent.data, 'remainingChats' : remaining.data})
 
 
 @api_view(['GET',])
@@ -109,29 +130,53 @@ def get_clients_doctor(request):
     else:
         return Response({'error' : "unauthorized request"}, status=status.HTTP_401_UNAUTHORIZED)
 
+##is active
 
-
-@api_view(['GET',])
+@api_view(['GET', ])
 @permission_classes((IsAuthenticated,))
 def get_all_sales(request):
     user = request.user
     sales_id = []
     id = user.id
-    msgs = Messages.objects.filter(Q(sender=id)|Q(receiver=id)).prefetch_related('sender', 'receiver').distinct('sender', 'receiver')
+    msgs = Messages.objects.filter(Q(sender=id) | Q(receiver=id)).prefetch_related('sender', 'receiver').distinct(
+        'sender', 'receiver')
 
     for msg in msgs:
         if msg.sender.role == User.SALES:
             sales_id.append(msg.sender.id)
         else:
             sales_id.append(msg.receiver.id)
-        
-    recentSales = User.objects.filter(role=User.SALES,id__in=sales_id).prefetch_related('salesDetails')
-    remainingSales = User.objects.filter(role=User.SALES).exclude(id__in=sales_id).prefetch_related('salesDetails')  
 
-    recent = AllUserSerializer(recentSales, many=True, context={'request':request})
-    remaining = AllUserSerializer(remainingSales, many=True, context={'request':request})
+    recentSales = User.objects.filter(role=User.SALES, id__in=sales_id, is_active=True).prefetch_related('salesDetails')
+    remainingSales = User.objects.filter(role=User.SALES, is_active=True).exclude(id__in=sales_id).prefetch_related(
+        'salesDetails')
 
-    return Response({'recentChats' : recent.data, 'remainingChats' : remaining.data})
+    recent = AllUserSerializer(recentSales, many=True, context={'request': request})
+    remaining = AllUserSerializer(remainingSales, many=True, context={'request': request})
+
+    return Response({'recentChats': recent.data, 'remainingChats': remaining.data})
+
+# @api_view(['GET',])
+# @permission_classes((IsAuthenticated,))
+# def get_all_sales(request):
+#     user = request.user
+#     sales_id = []
+#     id = user.id
+#     msgs = Messages.objects.filter(Q(sender=id)|Q(receiver=id)).prefetch_related('sender', 'receiver').distinct('sender', 'receiver')
+#
+#     for msg in msgs:
+#         if msg.sender.role == User.SALES:
+#             sales_id.append(msg.sender.id)
+#         else:
+#             sales_id.append(msg.receiver.id)
+#
+#     recentSales = User.objects.filter(role=User.SALES,id__in=sales_id).prefetch_related('salesDetails')
+#     remainingSales = User.objects.filter(role=User.SALES).exclude(id__in=sales_id).prefetch_related('salesDetails')
+#
+#     recent = AllUserSerializer(recentSales, many=True, context={'request':request})
+#     remaining = AllUserSerializer(remainingSales, many=True, context={'request':request})
+#
+#     return Response({'recentChats' : recent.data, 'remainingChats' : remaining.data})
 
 
 @api_view(['GET',])
@@ -142,35 +187,97 @@ def get_all_clients(request):
     serializer = AllClientSerializer(clients, many=True, context={'request' : request})
     return JsonResponse(serializer.data, safe=False)
 
-@api_view(['GET',])
+from django.db.models import Max
+
+
+@api_view(['GET', ])
 @permission_classes((IsAuthenticated,))
 def get_all_clients_of_doctor(request):
     user = request.user
     if user.role == User.DOCTOR:
         id = user.id
-        clients_id = []
+        clients_info = []
         try:
             details = user.docDetails.first()
         except DoctorDetails.DoesNotExist:
-            return JsonResponse({"error" : "doctor not found"}, status=status.HTTP_404_NOT_FOUND)
+            return JsonResponse({"error": "doctor not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        msgs = Messages.objects.filter(Q(sender=id)|Q(receiver=id)).prefetch_related('sender', 'receiver').distinct('sender', 'receiver')
-        for msg in msgs:
-            if msg.sender.role == User.CLIENT:
-                clients_id.append(msg.sender.id)
-            else:
-                clients_id.append(msg.receiver.id)
+        client_messages = (
+            Messages.objects.filter(Q(sender=id) | Q(receiver=id))
+            .filter(Q(sender__role=User.CLIENT) | Q(receiver__role=User.CLIENT))
+            .values('sender', 'receiver')
+            .annotate(last_message_time=Max('timestamp'))  # Retrieve the latest message time
+        )
 
-        recent_clients = User.objects.filter(role=User.CLIENT, id__in=clients_id, customer_details__referalId=details.id, is_active=True)
-        remaining_clients = User.objects.filter(role=User.CLIENT, customer_details__referalId=details.id, is_active=True).exclude(id__in=clients_id)
+        for msg_info in client_messages:
+            client_id = msg_info['sender'] if msg_info['sender'] != id else msg_info['receiver']
+            last_message_time = msg_info['last_message_time']
+            print("Trying to fetch user with ID:", client_id)  # Debugging line
 
-        recent = AllUserSerializer(recent_clients, many=True, context={'request': request})
-        remaining = AllUserSerializer(remaining_clients, many=True, context={'request': request})
+            try:
+                client = User.objects.get(id=client_id, is_active=True)  # Ensure client is active
+            except User.DoesNotExist:
+                print("User not found for ID:", client_id)  # Debugging line
+                continue  # Skip this iteration if user doesn't exist or is not active
 
-        return Response({'recentChats': recent.data, 'remainingChats': remaining.data})
+            serialized_client = AllUserSerializer(client, context={'request': request}).data
+
+            # Fetch the last message content and sender's name
+            last_message = (
+                Messages.objects.filter(
+                    (Q(sender=user) & Q(receiver=client)) | (Q(sender=client) & Q(receiver=user))
+                )
+                .order_by('-timestamp')
+                .first()
+            )
+            if last_message:
+                serialized_client["last_message_content"] = last_message.message
+                serialized_client["last_message_sender_name"] = last_message.sender.firstname
+
+            # Include last message time
+            formatted_last_message_time = last_message_time.strftime(
+                '%Y-%m-%d %H:%M:%S %Z') if last_message_time else None
+            serialized_client["last_message_time"] = formatted_last_message_time
+
+            clients_info.append(serialized_client)
+
+        return Response({'clients': clients_info})
     else:
         return JsonResponse({'error': "unauthorized request"}, status=status.HTTP_401_UNAUTHORIZED)
 
+
+##show this code to vivek
+
+##code is working befroe time issue upper code is new time issue changeing code
+# @api_view(['GET',])
+# @permission_classes((IsAuthenticated,))
+# def get_all_clients_of_doctor(request):
+#     user = request.user
+#     if user.role == User.DOCTOR:
+#         id = user.id
+#         clients_id = []
+#         try:
+#             details = user.docDetails.first()
+#         except DoctorDetails.DoesNotExist:
+#             return JsonResponse({"error" : "doctor not found"}, status=status.HTTP_404_NOT_FOUND)
+#
+#         msgs = Messages.objects.filter(Q(sender=id)|Q(receiver=id)).prefetch_related('sender', 'receiver').distinct('sender', 'receiver')
+#         for msg in msgs:
+#             if msg.sender.role == User.CLIENT:
+#                 clients_id.append(msg.sender.id)
+#             else:
+#                 clients_id.append(msg.receiver.id)
+#
+#         recent_clients = User.objects.filter(role=User.CLIENT, id__in=clients_id, customer_details__referalId=details.id, is_active=True)
+#         remaining_clients = User.objects.filter(role=User.CLIENT, customer_details__referalId=details.id, is_active=True).exclude(id__in=clients_id)
+#
+#         recent = AllUserSerializer(recent_clients, many=True, context={'request': request})
+#         remaining = AllUserSerializer(remaining_clients, many=True, context={'request': request})
+#
+#         return Response({'recentChats': recent.data, 'remainingChats': remaining.data})
+#     else:
+#         return JsonResponse({'error': "unauthorized request"}, status=status.HTTP_401_UNAUTHORIZED)
+#
 
 # @api_view(['GET',])
 # @permission_classes((IsAuthenticated,))
