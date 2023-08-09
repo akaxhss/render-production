@@ -196,7 +196,7 @@ def get_all_clients_of_doctor(request):
     user = request.user
     if user.role == User.DOCTOR:
         id = user.id
-        clients_info = []
+        recent_clients_info = []
         try:
             details = user.docDetails.first()
         except DoctorDetails.DoesNotExist:
@@ -222,26 +222,14 @@ def get_all_clients_of_doctor(request):
 
             serialized_client = AllUserSerializer(client, context={'request': request}).data
 
-            # Fetch the last message content and sender's name
-            last_message = (
-                Messages.objects.filter(
-                    (Q(sender=user) & Q(receiver=client)) | (Q(sender=client) & Q(receiver=user))
-                )
-                .order_by('-timestamp')
-                .first()
-            )
-            if last_message:
-                serialized_client["last_message_content"] = last_message.message
-                serialized_client["last_message_sender_name"] = last_message.sender.firstname
-
             # Include last message time
             formatted_last_message_time = last_message_time.strftime(
                 '%Y-%m-%d %H:%M:%S %Z') if last_message_time else None
             serialized_client["last_message_time"] = formatted_last_message_time
 
-            clients_info.append(serialized_client)
+            recent_clients_info.append(serialized_client)
 
-        return Response({'clients': clients_info})
+        return Response({'recentChats': recent_clients_info})
     else:
         return JsonResponse({'error': "unauthorized request"}, status=status.HTTP_401_UNAUTHORIZED)
 
@@ -277,7 +265,7 @@ def get_all_clients_of_doctor(request):
 #         return Response({'recentChats': recent.data, 'remainingChats': remaining.data})
 #     else:
 #         return JsonResponse({'error': "unauthorized request"}, status=status.HTTP_401_UNAUTHORIZED)
-#
+
 
 # @api_view(['GET',])
 # @permission_classes((IsAuthenticated,))
