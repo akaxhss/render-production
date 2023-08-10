@@ -187,8 +187,12 @@ def get_all_clients(request):
     serializer = AllClientSerializer(clients, many=True, context={'request' : request})
     return JsonResponse(serializer.data, safe=False)
 
+
+
 from django.db.models import Max
 
+from django.utils import timezone
+from datetime import timedelta
 
 @api_view(['GET',])
 @permission_classes((IsAuthenticated,))
@@ -235,6 +239,8 @@ def get_all_clients_of_doctor(request):
         recent_clients_info = []
         remaining_clients_info = []
 
+        current_time = timezone.now()
+
         for msg_info in client_messages:
             client_id = msg_info['sender'] if msg_info['sender'] != id else msg_info['receiver']
             last_message_time = msg_info['last_message_time']
@@ -247,7 +253,11 @@ def get_all_clients_of_doctor(request):
             serialized_client = AllUserSerializer(client, context={'request': request}).data
 
             # Include last message time
-            formatted_last_message_time = last_message_time.strftime('%Y-%m-%d %H:%M:%S %Z') if last_message_time else None
+            time_difference = current_time - last_message_time
+            if time_difference < timedelta(days=1):
+                formatted_last_message_time = last_message_time.strftime('%Y-%m-%d %I:%M:%S %p')
+            else:
+                formatted_last_message_time = last_message_time.strftime('%Y-%m-%d')
             serialized_client["last_message_time"] = formatted_last_message_time
 
             if client_id in recent_clients_id:
@@ -258,6 +268,77 @@ def get_all_clients_of_doctor(request):
         return Response({'recentChats': recent_clients_info, 'remainingChats': remaining.data})
     else:
         return JsonResponse({'error': "unauthorized request"}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+## this code is working fine as of the 9/aug above code is testing the show date if chat is 24hrs apart
+# @api_view(['GET',])
+# @permission_classes((IsAuthenticated,))
+# def get_all_clients_of_doctor(request):
+#     user = request.user
+#     if user.role == User.DOCTOR:
+#         id = user.id
+#         clients_id = []
+#         try:
+#             details = user.docDetails.first()
+#         except DoctorDetails.DoesNotExist:
+#             return JsonResponse({"error": "doctor not found"}, status=status.HTTP_404_NOT_FOUND)
+#
+#         msgs = Messages.objects.filter(Q(sender=id) | Q(receiver=id)).prefetch_related('sender', 'receiver').distinct('sender', 'receiver')
+#         for msg in msgs:
+#             if msg.sender.role == User.CLIENT:
+#                 clients_id.append(msg.sender.id)
+#             else:
+#                 clients_id.append(msg.receiver.id)
+#
+#         recent_clients = User.objects.filter(role=User.CLIENT, id__in=clients_id, customer_details__referalId=details.id)
+#         remaining_clients = User.objects.filter(role=User.CLIENT, customer_details__referalId=details.id).exclude(id__in=clients_id)
+#
+#         recent = AllUserSerializer(recent_clients, many=True, context={'request': request})
+#         remaining = AllUserSerializer(remaining_clients, many=True, context={'request': request})
+#
+#         client_messages = (
+#             Messages.objects.filter(Q(sender=id) | Q(receiver=id))
+#             .filter(Q(sender__role=User.CLIENT) | Q(receiver__role=User.CLIENT))
+#             .values('sender', 'receiver')
+#             .annotate(last_message_time=Max('timestamp'))  # Retrieve the latest message time
+#         )
+#
+#         # Collect client IDs from the client_messages queryset
+#         recent_clients_id = set()
+#         for msg_info in client_messages:
+#             sender_id = msg_info['sender']
+#             receiver_id = msg_info['receiver']
+#             if sender_id != id and sender_id != user.id:
+#                 recent_clients_id.add(sender_id)
+#             if receiver_id != id and receiver_id != user.id:
+#                 recent_clients_id.add(receiver_id)
+#
+#         recent_clients_info = []
+#         remaining_clients_info = []
+#
+#         for msg_info in client_messages:
+#             client_id = msg_info['sender'] if msg_info['sender'] != id else msg_info['receiver']
+#             last_message_time = msg_info['last_message_time']
+#
+#             try:
+#                 client = User.objects.get(id=client_id, is_active=True)  # Ensure client is active
+#             except User.DoesNotExist:
+#                 continue  # Skip this iteration if user doesn't exist or is not active
+#
+#             serialized_client = AllUserSerializer(client, context={'request': request}).data
+#
+#             # Include last message time
+#             formatted_last_message_time = last_message_time.strftime('%Y-%m-%d %H:%M:%S %Z') if last_message_time else None
+#             serialized_client["last_message_time"] = formatted_last_message_time
+#
+#             if client_id in recent_clients_id:
+#                 recent_clients_info.append(serialized_client)
+#             else:
+#                 remaining_clients_info.append(serialized_client)
+#
+#         return Response({'recentChats': recent_clients_info, 'remainingChats': remaining.data})
+#     else:
+#         return JsonResponse({'error': "unauthorized request"}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 ##show this code to vivek
