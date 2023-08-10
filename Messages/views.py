@@ -193,7 +193,6 @@ from django.db.models import Max
 
 from django.utils import timezone
 from datetime import timedelta
-
 @api_view(['GET',])
 @permission_classes((IsAuthenticated,))
 def get_all_clients_of_doctor(request):
@@ -265,7 +264,21 @@ def get_all_clients_of_doctor(request):
             else:
                 remaining_clients_info.append(serialized_client)
 
-        return Response({'recentChats': recent_clients_info, 'remainingChats': remaining.data})
+        for client_info in remaining.data:
+            client_id = client_info['id']
+            try:
+                client = User.objects.get(id=client_id, is_active=True)
+            except User.DoesNotExist:
+                continue
+
+            serialized_client = AllUserSerializer(client, context={'request': request}).data
+
+            joining_date = client.dateJoined.strftime('%Y-%m-%d') if client.dateJoined else None
+            serialized_client["joining_date"] = joining_date
+
+            remaining_clients_info.append(serialized_client)
+
+        return Response({'recentChats': recent_clients_info, 'remainingChats': remaining_clients_info})
     else:
         return JsonResponse({'error': "unauthorized request"}, status=status.HTTP_401_UNAUTHORIZED)
 
