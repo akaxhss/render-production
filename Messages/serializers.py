@@ -9,6 +9,7 @@ class AllMessageSerializer(serializers.Serializer):
     message = serializers.CharField()
     date = serializers.DateTimeField(source="timestamp",format="%d-%m-%Y")
     time = serializers.DateTimeField(source="timestamp",format="%H:%M %p")
+    ist_time = serializers.DateTimeField(source="ist_timestamp", format="%d-%m-%Y %H:%M %p", required=False)
 
 
 

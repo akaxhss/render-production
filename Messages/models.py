@@ -10,6 +10,7 @@ User = get_user_model()
 
 class Messages(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
+    ist_timestamp = models.DateTimeField(null=True, blank=True)
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='Sender')
     receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name="Receiver")
     message = models.CharField(max_length=800)
