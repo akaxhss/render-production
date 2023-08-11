@@ -38,6 +38,7 @@ class AllClientSerializer(serializers.Serializer):
     id = serializers.IntegerField(source="user.id")
     firstname = serializers.CharField(source="user.firstname")
     image_url = serializers.SerializerMethodField()
+    dateJoined = serializers.DateTimeField(source="user.dateJoined", format="%Y-%m-%d %H:%M:%S")
 
     def get_image_url(self, obj):
         request = self.context.get('request')
