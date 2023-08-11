@@ -18,6 +18,7 @@ class AllUserSerializer(serializers.Serializer):
     firstname = serializers.CharField()
     image_url = serializers.SerializerMethodField()
 
+
     def get_image_url(self, obj):
         request = self.context.get('request')
         if obj.profile_img:
