@@ -168,11 +168,11 @@ def get_all_consultants(request):
         else:
             consultants_id.append(msg.receiver.id)
 
-    recentConsultants = User.objects.filter(role=User.CONSULTANT, id__in=consultants_id, is_active=True)
-    remainingConsultants = User.objects.filter(role=User.CONSULTANT, is_active=True).exclude(id__in=consultants_id)
+    recent_consultants = User.objects.filter(role=User.CONSULTANT, id__in=consultants_id, is_active=True)
+    remaining_consultants = User.objects.filter(role=User.CONSULTANT, is_active=True).exclude(id__in=consultants_id)
 
-    recent = AllUserSerializer(recentConsultants, many=True, context={'request': request})
-    remaining = AllUserSerializer(remainingConsultants, many=True, context={'request': request})
+    recent = AllUserSerializer(recent_consultants, many=True, context={'request': request})
+    remaining = AllUserSerializer(remaining_consultants, many=True, context={'request': request})
 
     current_time = timezone.now()
 
@@ -211,8 +211,6 @@ def get_all_consultants(request):
         remaining_consultants_info.append(serialized_consultant)
 
     return Response({'recentChats': recent_consultants_info, 'remainingChats': remaining_consultants_info})
-
-
 
 
 
@@ -285,6 +283,7 @@ def get_clients_doctor(request):
         return Response({'error' : "unauthorized request"}, status=status.HTTP_401_UNAUTHORIZED)
 
 
+
 @api_view(['GET', ])
 @permission_classes((IsAuthenticated,))
 def get_all_sales(request):
@@ -300,12 +299,12 @@ def get_all_sales(request):
         else:
             sales_id.append(msg.receiver.id)
 
-    recentSales = User.objects.filter(role=User.SALES, id__in=sales_id, is_active=True).prefetch_related('salesDetails')
-    remainingSales = User.objects.filter(role=User.SALES, is_active=True).exclude(id__in=sales_id).prefetch_related(
+    recent_sales = User.objects.filter(role=User.SALES, id__in=sales_id, is_active=True).prefetch_related('salesDetails')
+    remaining_sales = User.objects.filter(role=User.SALES, is_active=True).exclude(id__in=sales_id).prefetch_related(
         'salesDetails')
 
-    recent = AllUserSerializer(recentSales, many=True, context={'request': request})
-    remaining = AllUserSerializer(remainingSales, many=True, context={'request': request})
+    recent = AllUserSerializer(recent_sales, many=True, context={'request': request})
+    remaining = AllUserSerializer(remaining_sales, many=True, context={'request': request})
 
     current_time = timezone.now()
 
@@ -345,6 +344,68 @@ def get_all_sales(request):
 
     return Response({'recentChats': recent_sales_info, 'remainingChats': remaining_sales_info})
 
+
+##below code is before making it same as get all doctor
+# @api_view(['GET', ])
+# @permission_classes((IsAuthenticated,))
+# def get_all_sales(request):
+#     user = request.user
+#     sales_id = []
+#     id = user.id
+#     msgs = Messages.objects.filter(Q(sender=id) | Q(receiver=id)).prefetch_related('sender', 'receiver').distinct(
+#         'sender', 'receiver')
+#
+#     for msg in msgs:
+#         if msg.sender.role == User.SALES:
+#             sales_id.append(msg.sender.id)
+#         else:
+#             sales_id.append(msg.receiver.id)
+#
+#     recentSales = User.objects.filter(role=User.SALES, id__in=sales_id, is_active=True).prefetch_related('salesDetails')
+#     remainingSales = User.objects.filter(role=User.SALES, is_active=True).exclude(id__in=sales_id).prefetch_related(
+#         'salesDetails')
+#
+#     recent = AllUserSerializer(recentSales, many=True, context={'request': request})
+#     remaining = AllUserSerializer(remainingSales, many=True, context={'request': request})
+#
+#     current_time = timezone.now()
+#
+#     recent_sales_info = []
+#     remaining_sales_info = []
+#
+#     for sales_info in recent.data:
+#         sales_id = sales_info['id']
+#         try:
+#             sales = User.objects.get(id=sales_id, is_active=True)
+#         except User.DoesNotExist:
+#             continue
+#
+#         serialized_sales = AllUserSerializer(sales, context={'request': request}).data
+#
+#         # Include last message time (Not sure how you want to calculate this for sales)
+#         last_message_time = None  # Replace this with your logic
+#         formatted_last_message_time = last_message_time.strftime('%Y-%m-%d %I:%M:%S %p') if last_message_time else None
+#         serialized_sales["last_message_time"] = formatted_last_message_time
+#
+#         recent_sales_info.append(serialized_sales)
+#
+#     for sales_info in remaining.data:
+#         sales_id = sales_info['id']
+#         try:
+#             sales = User.objects.get(id=sales_id, is_active=True)
+#         except User.DoesNotExist:
+#             continue
+#
+#         serialized_sales = AllUserSerializer(sales, context={'request': request}).data
+#
+#         # Include joining date
+#         joining_date = sales.dateJoined.strftime('%Y-%m-%d') if sales.dateJoined else None
+#         serialized_sales["joining_date"] = joining_date
+#
+#         remaining_sales_info.append(serialized_sales)
+#
+#     return Response({'recentChats': recent_sales_info, 'remainingChats': remaining_sales_info})
+#
 
 
 ## below code is first code above is after making it same as get_all_doc
