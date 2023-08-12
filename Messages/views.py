@@ -155,13 +155,14 @@ def get_all_messages(request):
 #     else:
 #         return Response({'error' : 'unauthorized request'}, status=status.HTTP_401_UNAUTHORIZED)
 
-@api_view(['GET',])
+@api_view(['GET', ])
 @permission_classes((IsAuthenticated,))
 def get_all_consultants(request):
     user = request.user
     consultants_id = []
     id = user.id
-    msgs = Messages.objects.filter(Q(sender=id) | Q(receiver=id)).prefetch_related('sender', 'receiver').distinct('sender', 'receiver')
+    msgs = Messages.objects.filter(Q(sender=id) | Q(receiver=id)).prefetch_related('sender', 'receiver').distinct(
+        'sender', 'receiver')
     for msg in msgs:
         if msg.sender.role == User.CONSULTANT:
             consultants_id.append(msg.sender.id)
@@ -188,10 +189,14 @@ def get_all_consultants(request):
 
         serialized_consultant = AllUserSerializer(consultant, context={'request': request}).data
 
-        # Include last message time (Not sure how you want to calculate this for consultants)
-        last_message_time = None  # Replace this with your logic
-        formatted_last_message_time = last_message_time.strftime('%Y-%m-%d %I:%M:%S %p') if last_message_time else None
-        serialized_consultant["last_message_time"] = formatted_last_message_time
+        # Retrieve ist_timestamp from Messages model
+        last_message = Messages.objects.filter(
+            Q(sender=user, receiver=consultant) | Q(sender=consultant, receiver=user)
+        ).latest('timestamp')
+
+        ist_time = last_message.ist_timestamp
+        formatted_ist_time = ist_time.strftime('%Y-%m-%d %I:%M:%S %p') if ist_time else None
+        serialized_consultant["last_message_time"] = formatted_ist_time
 
         recent_consultants_info.append(serialized_consultant)
 
@@ -211,7 +216,6 @@ def get_all_consultants(request):
         remaining_consultants_info.append(serialized_consultant)
 
     return Response({'recentChats': recent_consultants_info, 'remainingChats': remaining_consultants_info})
-
 
 
 ## this below code is first code and the above code is after making it same a get_all_doc
