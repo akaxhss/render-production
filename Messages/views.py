@@ -324,10 +324,14 @@ def get_all_sales(request):
 
         serialized_sales = AllUserSerializer(sales, context={'request': request}).data
 
-        # Include last message time (Not sure how you want to calculate this for sales)
-        last_message_time = None  # Replace this with your logic
-        formatted_last_message_time = last_message_time.strftime('%Y-%m-%d %I:%M:%S %p') if last_message_time else None
-        serialized_sales["last_message_time"] = formatted_last_message_time
+        # Retrieve ist_timestamp from Messages model
+        last_message = Messages.objects.filter(
+            Q(sender=user, receiver=sales) | Q(sender=sales, receiver=user)
+        ).latest('timestamp')
+
+        ist_time = last_message.ist_timestamp
+        formatted_ist_time = ist_time.strftime('%Y-%m-%d %I:%M:%S %p') if ist_time else None
+        serialized_sales["last_message_time"] = formatted_ist_time
 
         recent_sales_info.append(serialized_sales)
 
@@ -347,6 +351,7 @@ def get_all_sales(request):
         remaining_sales_info.append(serialized_sales)
 
     return Response({'recentChats': recent_sales_info, 'remainingChats': remaining_sales_info})
+
 
 
 ##below code is before making it same as get all doctor

@@ -353,7 +353,6 @@ def hostpital_registration(request):
 from django.contrib.auth import authenticate, login as django_login
 
 @api_view(['POST'])
-# @permission_classes((HasAPIKey,))
 @permission_classes((AllowAny,))
 def login_view(request):
     data = request.data
@@ -367,33 +366,18 @@ def login_view(request):
         # ... (existing code for the rest of the view)
         return
 
-    email = data.get('email')
+    username = data.get('email')
     password = data.get('password')
-    user = authenticate(request, username=email, password=password)
+    user = authenticate(request, username=username, password=password)
 
     if user is not None:
         if not user.is_active:
-            if email == user.email and password == user.password:
-                return JsonResponse(
-                    {
-                        "error": "Please call your sales person to make this account activate."
-                    },
-                    status=status.HTTP_401_UNAUTHORIZED
-                )
-            elif email == user.email:
-                return JsonResponse(
-                    {
-                        "error": "The provided password is incorrect."
-                    },
-                    status=status.HTTP_401_UNAUTHORIZED
-                )
-            elif password == user.password:
-                return JsonResponse(
-                    {
-                        "error": "The provided email is incorrect."
-                    },
-                    status=status.HTTP_401_UNAUTHORIZED
-                )
+            return JsonResponse(
+                {
+                    "error": "Please call your sales person to make this account activate."
+                },
+                status=status.HTTP_401_UNAUTHORIZED
+            )
         else:
             # Log the user in
             django_login(request, user)
@@ -403,12 +387,34 @@ def login_view(request):
             serializer = LoginSerializer(data=data)
             # ... (existing code for the rest of the view)
     else:
-        return JsonResponse(
-            {
-                "error": "The provided email or password is incorrect."
-            },
-            status=status.HTTP_401_UNAUTHORIZED
-        )
+        try:
+            # Check if the user with the provided email exists
+            user = User.objects.get(email=username)
+
+            # Email is correct, but the account is not active
+            if not user.is_active:
+                return JsonResponse(
+                    {
+                        "Thank you for subscribing!": "We have received your payment and are excited to have you on board. Please allow us 24 hours to assign a dedicated account manager who will be available to assist you. Your account will be fully enabled once the account manager is assigned. We appreciate your patience and look forward to providing you with a seamless experience."
+                    },
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+
+            # Password is incorrect
+            return JsonResponse(
+                {
+                    "error": "The provided password is incorrect."
+                },
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        except User.DoesNotExist:
+            # Email is incorrect
+            return JsonResponse(
+                {
+                    "error": "The provided email is incorrect."
+                },
+                status=status.HTTP_401_UNAUTHORIZED
+            )
 
     serializer = LoginSerializer(data=request.data)
 
