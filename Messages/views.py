@@ -258,34 +258,75 @@ def get_all_consultants(request):
 #     recent = AllUserSerializer(recentConsultants, many=True, context={'request':request})
 #     remaining = AllUserSerializer(remainingConsultants, many=True, context={'request':request})
 #     return Response({'recentChats' : recent.data, 'remainingChats' : remaining.data})
-
-
-@api_view(['GET',])
+@api_view(['GET', ])
 @permission_classes((IsAuthenticated,))
 def get_clients_doctor(request):
     user = request.user
-    # doctors_id = []
+
     if user.role == User.CLIENT:
-        details = user.customer_details.first()
         try:
-            doctor = DoctorDetails.objects.prefetch_related('user').get(id=details.referalId.id)
-        except DoctorDetails.DoesNotExist:
-            return JsonResponse({'error' : 'doctor not found'}, status=status.HTTP_404_NOT_FOUND)
+            details = user.customer_details.first()
+            if details.referalId:
+                doctor = details.referalId
+            else:
+                return JsonResponse({'error': 'doctor not found'}, status=status.HTTP_404_NOT_FOUND)
+        except CustomerDetails.DoesNotExist:
+            return JsonResponse({'error': 'Customer details not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Get last message between client and doctor
+        last_message = Messages.objects.filter(
+            Q(sender=user, receiver=doctor.user) | Q(sender=doctor.user, receiver=user)
+        ).latest('timestamp')
+
+        ist_time = last_message.ist_timestamp
+        formatted_ist_time = ist_time.strftime('%Y-%m-%d %I:%M:%S %p') if ist_time else None
+
         firstname = doctor.user.firstname
         lastname = doctor.user.lastname
         id = doctor.user.id
         speciality = doctor.speciality
         image_url = "https://" + str(get_current_site(request)) + "/media/" + str(doctor.user.profile_img)
-        return JsonResponse({
-            'id' : id,
-            'firstname' : firstname,
-            'lastname' : lastname,
-            'speciality' : speciality,
-            'image_url' : image_url
-        })       
-    else:
-        return Response({'error' : "unauthorized request"}, status=status.HTTP_401_UNAUTHORIZED)
 
+        return JsonResponse({
+            'id': id,
+            'firstname': firstname,
+            'lastname': lastname,
+            'speciality': speciality,
+            'image_url': image_url,
+            'last_message_time': formatted_ist_time  # Include IST time of last message
+        })
+    else:
+        return Response({'error': "unauthorized request"}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+# above code is tryjng to get ist_timestamp
+
+# @api_view(['GET',])
+# @permission_classes((IsAuthenticated,))
+# def get_clients_doctor(request):
+#     user = request.user
+#     # doctors_id = []
+#     if user.role == User.CLIENT:
+#         details = user.customer_details.first()
+#         try:
+#             doctor = DoctorDetails.objects.prefetch_related('user').get(id=details.referalId.id)
+#         except DoctorDetails.DoesNotExist:
+#             return JsonResponse({'error' : 'doctor not found'}, status=status.HTTP_404_NOT_FOUND)
+#         firstname = doctor.user.firstname
+#         lastname = doctor.user.lastname
+#         id = doctor.user.id
+#         speciality = doctor.speciality
+#         image_url = "https://" + str(get_current_site(request)) + "/media/" + str(doctor.user.profile_img)
+#         return JsonResponse({
+#             'id' : id,
+#             'firstname' : firstname,
+#             'lastname' : lastname,
+#             'speciality' : speciality,
+#             'image_url' : image_url
+#         })
+#     else:
+#         return Response({'error' : "unauthorized request"}, status=status.HTTP_401_UNAUTHORIZED)
+#
 
 
 @api_view(['GET', ])
