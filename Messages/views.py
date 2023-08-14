@@ -84,20 +84,22 @@ def send_message(request):
 #     else:
 #         return Response({'error' : 'unauthorized request'}, status=status.HTTP_401_UNAUTHORIZED)
 
-@api_view(['GET',])
+
+@api_view(['GET', ])
 @permission_classes((IsAuthenticated,))
 def get_all_messages(request):
     user = request.user
     if not user.role == User.ADMIN and not user.role == User.HOSPITAL_MANAGER:
         receiverDetails = {}
-        receiver = request.query_params.get('receiver', None)
-        if receiver is not None:
+        receiver_id = request.query_params.get('receiver', None)
+        if receiver_id is not None:
             try:
-                receiver = User.objects.get(id=receiver)  # Adding is_active=True condition ,is_active=True
+                receiver = User.objects.get(id=receiver_id, is_active=True)
                 receiverDetails['id'] = receiver.id
                 receiverDetails['image_url'] = "https://" + str(get_current_site(request)) + "/media/" + str(
                     receiver.profile_img)
-                receiverDetails['name'] = receiver.firstname + " " + receiver.lastname if receiver.lastname is not None else receiver.firstname
+                receiverDetails[
+                    'name'] = receiver.firstname + " " + receiver.lastname if receiver.lastname is not None else receiver.firstname
                 if receiver.role == User.DOCTOR:
                     details = receiver.docDetails.first()
                     receiverDetails['speciality'] = details.speciality
@@ -117,12 +119,65 @@ def get_all_messages(request):
                 messages_with_ist_timestamps.append(message)
 
             serializer = AllMessageSerializer(messages_with_ist_timestamps, many=True)
+
+            try:
+                last_message = Messages.objects.filter(
+                    (Q(sender=user, receiver=receiver) | Q(sender=receiver, receiver=user))
+                ).latest('timestamp')
+
+                ist_time = last_message.ist_timestamp
+                formatted_ist_time = ist_time.strftime('%Y-%m-%d %I:%M:%S %p') if ist_time else None
+                receiverDetails['last_message_time'] = formatted_ist_time
+            except Messages.DoesNotExist:
+                receiverDetails['last_message_time'] = None
+
             return Response({'messages': serializer.data, 'receiverDetails': receiverDetails})
         else:
             return Response({"error": "Receiver empty"}, status=status.HTTP_400_BAD_REQUEST)
     else:
         return Response({'error': 'Unauthorized request'}, status=status.HTTP_401_UNAUTHORIZED)
 
+
+#adding timestamp in reciver
+# @api_view(['GET',])
+# @permission_classes((IsAuthenticated,))
+# def get_all_messages(request):
+#     user = request.user
+#     if not user.role == User.ADMIN and not user.role == User.HOSPITAL_MANAGER:
+#         receiverDetails = {}
+#         receiver = request.query_params.get('receiver', None)
+#         if receiver is not None:
+#             try:
+#                 receiver = User.objects.get(id=receiver)  # Adding is_active=True condition ,is_active=True
+#                 receiverDetails['id'] = receiver.id
+#                 receiverDetails['image_url'] = "https://" + str(get_current_site(request)) + "/media/" + str(
+#                     receiver.profile_img)
+#                 receiverDetails['name'] = receiver.firstname + " " + receiver.lastname if receiver.lastname is not None else receiver.firstname
+#                 if receiver.role == User.DOCTOR:
+#                     details = receiver.docDetails.first()
+#                     receiverDetails['speciality'] = details.speciality
+#             except User.DoesNotExist:
+#                 return Response({'error': 'Receiver not found'}, status=status.HTTP_404_NOT_FOUND)
+#
+#             messages = Messages.objects.filter(
+#                 Q(sender=user.id) | Q(sender=receiver.id), Q(receiver=user.id) | Q(receiver=receiver.id)
+#             ).prefetch_related('receiver', 'sender')
+#
+#             ist = pytz.timezone('Asia/Kolkata')
+#             messages_with_ist_timestamps = []
+#
+#             for message in messages:
+#                 ist_timestamp = message.timestamp.astimezone(ist)
+#                 message.timestamp = ist_timestamp
+#                 messages_with_ist_timestamps.append(message)
+#
+#             serializer = AllMessageSerializer(messages_with_ist_timestamps, many=True)
+#             return Response({'messages': serializer.data, 'receiverDetails': receiverDetails})
+#         else:
+#             return Response({"error": "Receiver empty"}, status=status.HTTP_400_BAD_REQUEST)
+#     else:
+#         return Response({'error': 'Unauthorized request'}, status=status.HTTP_401_UNAUTHORIZED)
+#
 
 
 
@@ -155,6 +210,80 @@ def get_all_messages(request):
 #     else:
 #         return Response({'error' : 'unauthorized request'}, status=status.HTTP_401_UNAUTHORIZED)
 
+# @api_view(['GET', ])
+# @permission_classes((IsAuthenticated,))
+# def get_all_consultants(request):
+#     user = request.user
+#     consultants_id = []
+#     id = user.id
+#     msgs = Messages.objects.filter(Q(sender=id) | Q(receiver=id)).prefetch_related('sender', 'receiver').distinct(
+#         'sender', 'receiver')
+#     for msg in msgs:
+#         if msg.sender.role == User.CONSULTANT:
+#             consultants_id.append(msg.sender.id)
+#         else:
+#             consultants_id.append(msg.receiver.id)
+#
+#     recent_consultants = User.objects.filter(role=User.CONSULTANT, id__in=consultants_id, is_active=True)
+#     remaining_consultants = User.objects.filter(role=User.CONSULTANT, is_active=True).exclude(id__in=consultants_id)
+#
+#     recent = AllUserSerializer(recent_consultants, many=True, context={'request': request})
+#     remaining = AllUserSerializer(remaining_consultants, many=True, context={'request': request})
+#
+#     current_time = timezone.now()
+#
+#     recent_consultants_info = []
+#     remaining_consultants_info = []
+#
+#     for consultant_info in recent.data:
+#         consultant_id = consultant_info['id']
+#         try:
+#             consultant = User.objects.get(id=consultant_id, is_active=True)
+#         except User.DoesNotExist:
+#             continue
+#
+#         serialized_consultant = AllUserSerializer(consultant, context={'request': request}).data
+#
+#         # Retrieve ist_timestamp from Messages model
+#         last_message = Messages.objects.filter(
+#             Q(sender=user, receiver=consultant) | Q(sender=consultant, receiver=user)
+#         ).latest('timestamp')
+#
+#         ist_time = last_message.ist_timestamp
+#         now = timezone.now()
+#
+#         if ist_time:
+#             time_difference = now - ist_time
+#             if time_difference.days == 0 and time_difference.seconds < 86400:  # Less than 24 hours
+#                 formatted_ist_time = ist_time.strftime('%Y-%m-%d %I:%M:%S %p')
+#             else:
+#                 formatted_ist_time = ist_time.strftime('%Y-%m-%d')  # Only date
+#         else:
+#             formatted_ist_time = None
+#
+#         serialized_consultant["last_message_time"] = formatted_ist_time
+#
+#         recent_consultants_info.append(serialized_consultant)
+#
+#     for consultant_info in remaining.data:
+#         consultant_id = consultant_info['id']
+#         try:
+#             consultant = User.objects.get(id=consultant_id, is_active=True)
+#         except User.DoesNotExist:
+#             continue
+#
+#         serialized_consultant = AllUserSerializer(consultant, context={'request': request}).data
+#
+#         # Include joining date
+#         joining_date = consultant.dateJoined.strftime('%Y-%m-%d') if consultant.dateJoined else None
+#         serialized_consultant["joining_date"] = joining_date
+#
+#         remaining_consultants_info.append(serialized_consultant)
+#
+#     return Response({'recentChats': recent_consultants_info, 'remainingChats': remaining_consultants_info})
+#
+
+# before 24hrs
 @api_view(['GET', ])
 @permission_classes((IsAuthenticated,))
 def get_all_consultants(request):
@@ -327,7 +456,6 @@ def get_clients_doctor(request):
 #     else:
 #         return Response({'error' : "unauthorized request"}, status=status.HTTP_401_UNAUTHORIZED)
 #
-
 
 @api_view(['GET', ])
 @permission_classes((IsAuthenticated,))
