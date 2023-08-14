@@ -131,12 +131,77 @@ def get_all_messages(request):
             except Messages.DoesNotExist:
                 receiverDetails['last_message_time'] = None
 
-            return Response({'messages': serializer.data, 'receiverDetails': receiverDetails})
+            if user.dateJoined:
+                formatted_joining_date = user.dateJoined.strftime('%Y-%m-%d %I:%M:%S %p')
+                receiverDetails['joining_date'] = formatted_joining_date
+            else:
+                receiverDetails['joining_date'] = None
+
+            response_data = {
+                'messages': serializer.data,
+                'receiverDetails': receiverDetails,
+            }
+
+            return Response(response_data)
         else:
             return Response({"error": "Receiver empty"}, status=status.HTTP_400_BAD_REQUEST)
     else:
         return Response({'error': 'Unauthorized request'}, status=status.HTTP_401_UNAUTHORIZED)
 
+
+#14/-8/2023
+# @api_view(['GET', ])
+# @permission_classes((IsAuthenticated,))
+# def get_all_messages(request):
+#     user = request.user
+#     if not user.role == User.ADMIN and not user.role == User.HOSPITAL_MANAGER:
+#         receiverDetails = {}
+#         receiver_id = request.query_params.get('receiver', None)
+#         if receiver_id is not None:
+#             try:
+#                 receiver = User.objects.get(id=receiver_id, is_active=True)
+#                 receiverDetails['id'] = receiver.id
+#                 receiverDetails['image_url'] = "https://" + str(get_current_site(request)) + "/media/" + str(
+#                     receiver.profile_img)
+#                 receiverDetails[
+#                     'name'] = receiver.firstname + " " + receiver.lastname if receiver.lastname is not None else receiver.firstname
+#                 if receiver.role == User.DOCTOR:
+#                     details = receiver.docDetails.first()
+#                     receiverDetails['speciality'] = details.speciality
+#             except User.DoesNotExist:
+#                 return Response({'error': 'Receiver not found'}, status=status.HTTP_404_NOT_FOUND)
+#
+#             messages = Messages.objects.filter(
+#                 Q(sender=user.id) | Q(sender=receiver.id), Q(receiver=user.id) | Q(receiver=receiver.id)
+#             ).prefetch_related('receiver', 'sender')
+#
+#             ist = pytz.timezone('Asia/Kolkata')
+#             messages_with_ist_timestamps = []
+#
+#             for message in messages:
+#                 ist_timestamp = message.timestamp.astimezone(ist)
+#                 message.timestamp = ist_timestamp
+#                 messages_with_ist_timestamps.append(message)
+#
+#             serializer = AllMessageSerializer(messages_with_ist_timestamps, many=True)
+#
+#             try:
+#                 last_message = Messages.objects.filter(
+#                     (Q(sender=user, receiver=receiver) | Q(sender=receiver, receiver=user))
+#                 ).latest('timestamp')
+#
+#                 ist_time = last_message.ist_timestamp
+#                 formatted_ist_time = ist_time.strftime('%Y-%m-%d %I:%M:%S %p') if ist_time else None
+#                 receiverDetails['last_message_time'] = formatted_ist_time
+#             except Messages.DoesNotExist:
+#                 receiverDetails['last_message_time'] = None
+#
+#             return Response({'messages': serializer.data, 'receiverDetails': receiverDetails})
+#         else:
+#             return Response({"error": "Receiver empty"}, status=status.HTTP_400_BAD_REQUEST)
+#     else:
+#         return Response({'error': 'Unauthorized request'}, status=status.HTTP_401_UNAUTHORIZED)
+#
 
 #adding timestamp in reciver
 # @api_view(['GET',])
