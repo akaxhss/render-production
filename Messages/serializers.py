@@ -5,6 +5,7 @@ from django.db.models import Q
 from datetime import timedelta
 from django.utils import timezone
 from django.utils.timezone import make_aware
+from Accounts.models import CustomerDetails, SalesTeamDetails, DoctorDetails
 
 
 class AllMessageSerializer(serializers.Serializer):
@@ -61,6 +62,50 @@ class AllClientSerializer(serializers.Serializer):
 
             last_message_sent = messages_sent.latest('timestamp').timestamp if messages_sent.exists() else None
             last_message_received = messages_received.latest('timestamp').timestamp if messages_received.exists() else None
+
+            if last_message_sent is None and last_message_received is None:
+                return user.dateJoined.strftime('%Y-%m-%d %H:%M:%S') if user.dateJoined else None
+
+            if last_message_sent and last_message_received:
+                last_message = max(last_message_sent, last_message_received)
+            elif last_message_sent:
+                last_message = last_message_sent
+            else:
+                last_message = last_message_received
+
+            ist_time = last_message + timedelta(hours=5, minutes=30)
+            return ist_time.strftime('%Y-%m-%d %H:%M:%S')
+
+        return user.dateJoined.strftime('%Y-%m-%d %H:%M:%S') if user.dateJoined else None
+
+
+class SalesTeamSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(source='user.id')
+    firstname = serializers.CharField(source='user.firstname')
+    email = serializers.EmailField(source='user.email')
+    accountStatus = serializers.BooleanField(source='user.is_active')
+    password = serializers.CharField(source='passwordString')
+    custom_date = serializers.SerializerMethodField()  # Add this line
+
+    class Meta:
+        model = SalesTeamDetails
+        fields = '__all__'
+        extra_kwargs = {
+            'passwordString': {'write_only': True},
+            'user': {'write_only': True},
+        }
+
+    def get_custom_date(self, obj):
+        user = obj.user
+        logged_in_user = self.context.get('request').user
+
+        if user.role == User.SALES:
+            messages_sent = Messages.objects.filter(sender=user, receiver=logged_in_user)
+            messages_received = Messages.objects.filter(receiver=user, sender=logged_in_user)
+
+            last_message_sent = messages_sent.latest('timestamp').timestamp if messages_sent.exists() else None
+            last_message_received = messages_received.latest(
+                'timestamp').timestamp if messages_received.exists() else None
 
             if last_message_sent is None and last_message_received is None:
                 return user.dateJoined.strftime('%Y-%m-%d %H:%M:%S') if user.dateJoined else None

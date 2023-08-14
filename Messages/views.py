@@ -1,5 +1,5 @@
 from os import stat
-from Accounts.models import CustomerDetails, DoctorDetails
+from Accounts.models import CustomerDetails, DoctorDetails,SalesTeamDetails
 from .models import *
 from .serializers import *
 from django.http import JsonResponse
@@ -953,3 +953,53 @@ def generate_message_notification(request, user_id, user_pic):
         "user_pic": user_pic,
     }
     return JsonResponse(notification_data)
+
+@api_view(['GET',])
+@permission_classes((IsAuthenticated,))
+def all_sales_team(request):
+    try:
+        user = request.user
+        user_id = request.query_params.get('user_id', None)
+        sales = SalesTeamDetails.objects.filter(user__isnull=False, user__role=User.SALES).prefetch_related('user')
+
+        serializer = SalesTeamSerializer(sales, many=True, context={'request': request})
+
+        serialized_data = serializer.data
+
+        if user_id and str(user_id) == str(user.id):  # Check if user id matches the requested user_id
+            for data in serialized_data:
+                data['custom_date'] = data.pop('dateJoined')  # Rename 'dateJoined' to 'custom_date'
+
+        context = {
+            'count': len(serialized_data),
+            'details': serialized_data
+        }
+
+        return JsonResponse(context)
+    except Exception as e:
+        print(e)
+
+# @api_view(['GET',])
+# @permission_classes((IsAuthenticated,))
+# def all_sales_team(request):
+#     try:
+#         user = request.user
+#         user_id = request.query_params.get('user_id', None)
+#         sales = SalesTeamDetails.objects.filter(user__isnull=False, user__role=User.SALES).prefetch_related('user')
+#
+#         serializer = SalesTeamSerializer(sales, many=True, context={'request': request})
+#
+#         serialized_data = serializer.data
+#
+#         if user_id and str(user_id) == str(user.id):  # Check if user id matches the requested user_id
+#             for data in serialized_data:
+#                 data['dateJoined'] = user.dateJoined.strftime('%Y-%m-%d %I:%M:%S %p')
+#
+#         context = {
+#             'count': len(serialized_data),
+#             'details': serialized_data
+#         }
+#
+#         return JsonResponse(context)
+#     except Exception as e:
+#         print(e)
