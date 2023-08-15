@@ -297,16 +297,42 @@ def approve_doctor(request):
 @api_view(['GET'])
 @permission_classes((IsAuthenticated,))
 def all_consultants_list(request):
-    user = request.user
-    consultants = ConsultantInfo.objects.filter(user__role = 5).prefetch_related('user')
-    if user.role == User.ADMIN:
-        serializer = ConsultantInfoSerializer(consultants, many=True, context={'request' : request})
-    elif user.role == User.CLIENT:
-        serializer = ConsultantSerializer(consultants, many=True, context={'request':request})
-    else:
-        return JsonResponse({'error' : 'unauthorized request'}, status=status.HTTP_401_UNAUTHORIZED)
-    return JsonResponse({'data' : serializer.data, 'count' :consultants.count() }, safe=False)
+    try:
+        user = request.user
+        user_id = request.query_params.get('user_id', None)
+        consultants = ConsultantInfo.objects.filter(user__role=5).prefetch_related('user')
 
+        serializer = ConsultantInfoSerializer(consultants, many=True, context={'request': request})
+
+        serialized_data = serializer.data
+
+        if user_id and str(user_id) == str(user.id):  # Check if user id matches the requested user_id
+            for data in serialized_data:
+                data['custom_date'] = data.pop('dateJoined')  # Rename 'dateJoined' to 'custom_date'
+
+        context = {
+            'count': len(serialized_data),
+            'details': serialized_data
+        }
+
+        return JsonResponse(context)
+    except Exception as e:
+        print(e)
+
+
+# @api_view(['GET'])
+# @permission_classes((IsAuthenticated,))
+# def all_consultants_list(request):
+#     user = request.user
+#     consultants = ConsultantInfo.objects.filter(user__role = 5).prefetch_related('user')
+#     if user.role == User.ADMIN:
+#         serializer = ConsultantInfoSerializer(consultants, many=True, context={'request' : request})
+#     elif user.role == User.CLIENT:
+#         serializer = ConsultantSerializer(consultants, many=True, context={'request':request})
+#     else:
+#         return JsonResponse({'error' : 'unauthorized request'}, status=status.HTTP_401_UNAUTHORIZED)
+#     return JsonResponse({'data' : serializer.data, 'count' :consultants.count() }, safe=False)
+#
 
 @api_view(['GET'])
 @permission_classes((IsAuthenticated,))

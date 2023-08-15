@@ -1,5 +1,5 @@
 from os import stat
-from Accounts.models import CustomerDetails, DoctorDetails,SalesTeamDetails
+from Accounts.models import CustomerDetails, DoctorDetails,SalesTeamDetails,ConsultantInfo
 from .models import *
 from .serializers import *
 from django.http import JsonResponse
@@ -1003,3 +1003,19 @@ def all_sales_team(request):
 #         return JsonResponse(context)
 #     except Exception as e:
 #         print(e)
+
+
+@api_view(['GET'])
+@permission_classes((IsAuthenticated,))
+def all_consultants_list(request):
+    user = request.user
+    consultants = ConsultantInfo.objects.filter(user__role=5).prefetch_related('user')
+
+    serializer = ConsultantInfoWithCustomDateSerializer(consultants, many=True, context={'request': request})
+
+    context = {
+        'count': consultants.count(),
+        'details': serializer.data
+    }
+
+    return JsonResponse(context, safe=False)
