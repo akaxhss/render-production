@@ -86,6 +86,7 @@ class SalesTeamSerializer(serializers.ModelSerializer):
     accountStatus = serializers.BooleanField(source='user.is_active')
     password = serializers.CharField(source='passwordString')
     custom_date = serializers.SerializerMethodField()  # Add this line
+    profile_pic = serializers.SerializerMethodField()  # Add this line
 
     class Meta:
         model = SalesTeamDetails
@@ -120,7 +121,16 @@ class SalesTeamSerializer(serializers.ModelSerializer):
             ist_time = last_message + timedelta(hours=5, minutes=30)
             return ist_time.strftime('%Y-%m-%d %H:%M:%S')
 
+
         return user.dateJoined.strftime('%Y-%m-%d %H:%M:%S') if user.dateJoined else None
+
+    def get_profile_pic(self, obj):
+        user = obj.user
+        request = self.context.get('request')
+        if user.profile_img:
+            return "https://" + str(get_current_site(request)) + "/media/" + str(user.profile_img)
+        else:
+            return "https://" + str(get_current_site(request)) + "/media/ProfilePic/" + str("default.jpg")
 
 
 class ConsultantInfoWithCustomDateSerializer(serializers.ModelSerializer):
