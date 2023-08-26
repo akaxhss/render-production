@@ -353,10 +353,14 @@ def hostpital_registration(request):
 from django.contrib.auth import authenticate, login as django_login
 
 @api_view(['POST'])
+# @permission_classes((HasAPIKey,))
 @permission_classes((AllowAny,))
 def login_view(request):
     data = request.data
     print(data)
+
+    fcm_token_from_response = data.get('fcm_token')
+    print("Extracted FCM token from response:", fcm_token_from_response)  # Log extracted FCM token
 
     # Check if the user is already authenticated
     if request.user.is_authenticated:
@@ -378,6 +382,7 @@ def login_view(request):
                 },
                 status=status.HTTP_401_UNAUTHORIZED
             )
+
         else:
             # Log the user in
             django_login(request, user)
@@ -424,16 +429,21 @@ def login_view(request):
     if data.get('fcm_token'):
         fcm_token = fcm_token
 
-
     if serializer.is_valid(raise_exception=True):
         user = serializer.validated_data['user']
         print(user.id)
         print(serializer.validated_data['fcm_token'])
-        user_obj = User.objects.get(pk = user.id)
-        try:
-            FirebaseFcm.objects.create(user = user_obj , fcm_token = serializer.validated_data['fcm_token'])
-        except Exception as e:
-            print(e)
+        user_obj = User.objects.get(pk=user.id)
+        fcm_token = data.get('fcm_token')  # Get the FCM token from request data
+        if fcm_token:
+            try:
+                FirebaseFcm.objects.create(user=user_obj, fcm_token=serializer.validated_data['fcm_token'])
+            except Exception as e:
+                print(e)
+        user_obj.fcm_token = fcm_token  # Update the fcm_token for the user
+        user_obj.save()  # Save the user with updated fcm_token
+        print("FCM token saved to user:", user_obj.fcm_token)  # Log saved FCM token
+
         # user_obj.fcm_token = serializer.validated_data['fcm_token']
         # print(user_obj)
     else:
@@ -441,15 +451,14 @@ def login_view(request):
 
     token, created = Token.objects.get_or_create(user=user)
 
-
-
     user_obj.save()
+
 
     # Different users
     if user.role == User.CLIENT:
         try:
             print(user.id)
-            Subscription = PurchasedMembership.objects.filter(user__id=user.id,is_paid=True).order_by('-pk')
+            Subscription = PurchasedMembership.objects.filter(user__id=user.id, is_paid=True).order_by('-pk')
             # if Subscription:
             has_subscription = True
             subscription_package = Subscription[0].membership.membership_name
@@ -457,61 +466,62 @@ def login_view(request):
             has_subscription = False
             subscription_package = ""
         context = {
-            'token' : token.key,
-            'client' : True,
-            'id' : user.id,
-            'has_subscription' : has_subscription,
-            'subscription_package' : subscription_package
+            'token': token.key,
+            'client': True,
+            'id': user.id,
+            'has_subscription': has_subscription,
+            'subscription_package': subscription_package,
+            'fcm_token': fcm_token
         }
 
-        return JsonResponse(context,status=status.HTTP_200_OK)
+        return JsonResponse(context, status=status.HTTP_200_OK)
     elif user.role == User.DOCTOR:
         context = {
-            'token' : token.key,
-            'doctor' : True,
-            'doctorId' : user.id,
-            'fcm_token' : user_obj.fcm_token
+            'token': token.key,
+            'doctor': True,
+            'doctorId': user.id,
+            'fcm_token': user_obj.fcm_token
         }
         return JsonResponse(context, status=status.HTTP_200_OK)
     elif user.role == User.SALES:
         return JsonResponse({
-            "id" : user.id,
-            'token' : token.key,
-            'sales' : True,
-            'fcm_token' : user_obj.fcm_token
+            "id": user.id,
+            'token': token.key,
+            'sales': True,
+            'fcm_token': user_obj.fcm_token
 
         })
     elif user.role == User.ADMIN:
         return JsonResponse({
-            "id" : user.id,
-            'token' : token.key,
-            'admin' : True     ,
-            'fcm_token' : user_obj.fcm_token
+            "id": user.id,
+            'token': token.key,
+            'admin': True,
+            'fcm_token': user_obj.fcm_token
 
         })
     elif user.role == User.CONSULTANT:
         return JsonResponse({
-            "id" : user.id,
-            'token' : token.key,
-            "consltant" : True,
-            'fcm_token' : user_obj.fcm_token
+            "id": user.id,
+            'token': token.key,
+            "consltant": True,
+            'fcm_token': user_obj.fcm_token
 
         })
 
     elif user.role == User.DAD:
         return JsonResponse({
-            "id" : user.id,
-            'token' : token.key,
-            "dad" : True,
-            'fcm_token' : user_obj.fcm_token
+            "id": user.id,
+            'token': token.key,
+            "dad": True,
+            'fcm_token': user_obj.fcm_token
 
         })
-    else: #user.hospitalManager
+    else:  # user.hospitalManager
         return JsonResponse({
-            "id" : user.id,
-            'token' : token.key,
-            "hospitalManager" : True,
-            'fcm_token' : user_obj.fcm_token
+            "id": user.id,
+            'token': token.key,
+            "hospitalManager": True,
+            'fcm_token': user_obj.fcm_token
 
         })
 
